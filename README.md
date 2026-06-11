@@ -407,3 +407,68 @@ MIT License — feel free to use and modify for your business.
 ---
 
 > 💡 **Need help?** See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for detailed solutions, or [DEPLOYMENT.md](DEPLOYMENT.md) for cloud deployment guides.
+
+---
+
+## 📁 Complete File Structure
+
+```
+rag-chatbot/
+├── index.html                  ← Main chat interface
+├── admin.html                  ← Admin panel
+├── sw.js                       ← Service worker (PWA)
+│
+├── css/
+│   ├── style.css               ← Main styles (shared)
+│   └── admin.css               ← Admin panel styles
+│
+├── js/
+│   ├── config.js               ← App config & localStorage helpers
+│   ├── api.js                  ← HTTP client + demo mode fallback
+│   ├── chat.js                 ← Chat UI logic
+│   ├── theme.js                ← Dark/light mode + toasts
+│   ├── main.js                 ← Chat page entry point
+│   └── admin.js                ← Admin panel logic
+│
+├── backend/
+│   ├── Dockerfile
+│   ├── requirements.txt
+│   ├── pytest.ini
+│   ├── app/
+│   │   ├── main.py             ← FastAPI app factory + lifecycle
+│   │   ├── models/schemas.py   ← Pydantic request/response models
+│   │   ├── routers/
+│   │   │   ├── chat.py         ← Chat API endpoints
+│   │   │   ├── admin.py        ← Admin API endpoints
+│   │   │   └── analytics.py   ← Analytics endpoints
+│   │   ├── services/
+│   │   │   ├── rag_service.py  ← Core RAG pipeline
+│   │   │   ├── vector_store.py ← ChromaDB/Pinecone/Qdrant abstraction
+│   │   │   ├── document_processor.py ← File parsing + ingestion
+│   │   │   └── database.py    ← SQLite async operations
+│   │   └── utils/
+│   │       ├── config.py       ← Pydantic Settings
+│   │       └── logger.py      ← Rotating file + stdout logging
+│   └── tests/
+│       └── test_rag_pipeline.py ← 20+ pytest test cases
+│
+├── documents/                  ← DROP YOUR FILES HERE
+│   ├── README.md
+│   └── sample_store_knowledge_base.txt  ← Demo knowledge base
+│
+├── nginx/nginx.conf            ← Reverse proxy config
+├── scripts/
+│   ├── setup.sh                ← Automated setup script
+│   ├── run_dev.sh              ← Development startup
+│   └── ingest_documents.py    ← Manual ingestion CLI
+│
+├── docker-compose.yml          ← Production stack
+├── docker-compose.dev.yml      ← Development overrides
+├── .env.example                ← Environment template
+├── .gitignore
+│
+├── README.md                   ← This file
+├── DEPLOYMENT.md               ← Cloud deployment guides
+├── API_DOCUMENTATION.md        ← Full API reference
+└── TROUBLESHOOTING.md          ← Common issues & fixes
+```
