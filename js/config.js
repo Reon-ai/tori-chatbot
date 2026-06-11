@@ -22,7 +22,7 @@ const APP_CONFIG = (() => {
   // ── Defaults ─────────────────────────────────────────────────
   const DEFAULTS = {
     BACKEND_URL:   '',                  // empty = demo mode
-    BUSINESS_NAME: 'ShopBot AI',
+    BUSINESS_NAME: 'Tori',
     ADMIN_PASSWORD: 'admin123',         // stored hashed in production
     RAG: {
       chunkSize:      800,
