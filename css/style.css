@@ -546,6 +546,7 @@ img, video { max-width: 100%; }
   align-items: center;
   justify-content: center;
   animation: tileFloat 3s ease-in-out infinite;
+  border-radius: 0;
 }
 
 .tori-tile-svg {
