@@ -49,9 +49,7 @@ const CHAT = (() => {
       <div class="welcome-icon">
         <div class="tori-welcome-tile">
           <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" class="tori-tile-svg" aria-hidden="true">
-            <rect class="tile-rect-outer" x="4" y="4" width="56" height="56" rx="0"/>
-            <rect class="tile-rect-inner" x="16" y="16" width="32" height="32" rx="0"/>
-            <rect class="tile-dot" x="27" y="27" width="10" height="10" rx="0"/>
+            <rect class="tile-rect-outer" x="8" y="8" width="48" height="48" rx="0"/>
           </svg>
         </div>
       </div>
