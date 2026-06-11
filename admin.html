@@ -22,6 +22,8 @@
         <p>RAG Chatbot Management</p>
       </div>
       <form id="admin-login-form" novalidate>
+        <!-- Hidden username field for password manager accessibility -->
+        <input type="text" name="username" value="admin" autocomplete="username" style="display:none" aria-hidden="true" tabindex="-1" />
         <div class="form-group">
           <label for="admin-password" class="form-label">Password</label>
           <div class="input-with-icon">
