@@ -534,7 +534,67 @@ img, video { max-width: 100%; }
 }
 .welcome-message .welcome-icon {
   margin-bottom: 1rem;
+  display: flex;
+  justify-content: center;
 }
+
+/* Animated Tiletoria tile icon */
+.tori-welcome-tile {
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: tileFloat 3s ease-in-out infinite;
+}
+
+.tori-tile-svg {
+  width: 80px;
+  height: 80px;
+  overflow: visible;
+}
+
+/* Outer square — yellow fill, pulses */
+.tile-rect-outer {
+  fill: var(--brand-yellow);
+  animation: tilePulse 3s ease-in-out infinite;
+  transform-origin: 32px 32px;
+}
+
+/* Inner square — black, rotates slowly */
+.tile-rect-inner {
+  fill: var(--brand-black);
+  animation: tileRotate 6s linear infinite;
+  transform-origin: 32px 32px;
+}
+
+/* Centre dot — yellow, blinks */
+.tile-dot {
+  fill: var(--brand-yellow);
+  animation: tileBlink 2s ease-in-out infinite;
+  transform-origin: 32px 32px;
+}
+
+@keyframes tileFloat {
+  0%, 100% { transform: translateY(0);    }
+  50%       { transform: translateY(-7px); }
+}
+
+@keyframes tilePulse {
+  0%, 100% { transform: scale(1);    opacity: 1;   }
+  50%       { transform: scale(1.06); opacity: .92; }
+}
+
+@keyframes tileRotate {
+  0%   { transform: rotate(0deg);   }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes tileBlink {
+  0%, 100% { opacity: 1;   transform: scale(1);    }
+  50%       { opacity: .4; transform: scale(.7);   }
+}
+
 .welcome-message .tori-welcome-logo {
   width: 72px; height: 72px;
   background: var(--brand-yellow);
