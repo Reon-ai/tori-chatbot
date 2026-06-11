@@ -1,0 +1,26 @@
+# ================================================================
+# docker-compose.dev.yml
+# Development override with hot-reload and ChromaDB exposed
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+# ================================================================
+
+version: "3.9"
+
+services:
+  backend:
+    build:
+      target: base
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    environment:
+      - ENVIRONMENT=development
+      - LOG_LEVEL=DEBUG
+    volumes:
+      - ./backend:/app     # mount source for hot-reload
+      - rag_data:/app/data
+      - ./documents:/app/documents
+    ports:
+      - "8000:8000"
+
+  nginx:
+    ports:
+      - "3000:80"          # dev: access frontend at http://localhost:3000

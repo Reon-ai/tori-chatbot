@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RAG Chatbot – E-Commerce Assistant</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛍️</text></svg>" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="light-mode">
+
+  <!-- ===== HEADER ===== -->
+  <header id="main-header">
+    <div class="header-inner">
+      <div class="brand">
+        <span class="brand-icon">🛍️</span>
+        <div class="brand-text">
+          <span class="brand-name">ShopBot AI</span>
+          <span class="brand-tagline">Your Smart Shopping Assistant</span>
+        </div>
+      </div>
+      <nav class="header-actions">
+        <button id="theme-toggle" class="icon-btn" title="Toggle dark/light mode" aria-label="Toggle theme">
+          <i class="fas fa-moon"></i>
+        </button>
+        <button id="clear-chat-btn" class="icon-btn" title="Clear conversation" aria-label="Clear chat">
+          <i class="fas fa-trash-alt"></i>
+        </button>
+        <a href="admin.html" class="admin-link" title="Admin Panel">
+          <i class="fas fa-cog"></i>
+          <span>Admin</span>
+        </a>
+      </nav>
+    </div>
+    <div id="connection-banner" class="connection-banner hidden">
+      <i class="fas fa-exclamation-triangle"></i>
+      <span id="connection-msg">Backend not connected – running in demo mode</span>
+      <button id="configure-backend-btn" class="btn-small">Configure</button>
+    </div>
+  </header>
+
+  <!-- ===== MAIN LAYOUT ===== -->
+  <main id="app-main">
+
+    <!-- ===== CHAT SECTION ===== -->
+    <section id="chat-section" aria-label="Chat interface">
+
+      <!-- Status bar -->
+      <div class="chat-status-bar">
+        <span class="status-dot online" id="status-dot"></span>
+        <span id="status-label">Assistant Ready</span>
+        <span class="session-id" id="session-display"></span>
+      </div>
+
+      <!-- Messages container -->
+      <div id="chat-messages" role="log" aria-live="polite" aria-label="Conversation messages">
+        <!-- Welcome message injected by JS -->
+      </div>
+
+      <!-- Typing indicator -->
+      <div id="typing-indicator" class="typing-indicator hidden" aria-label="Assistant is typing">
+        <div class="typing-bubble">
+          <span class="typing-dot"></span>
+          <span class="typing-dot"></span>
+          <span class="typing-dot"></span>
+        </div>
+        <span class="typing-text">ShopBot is thinking…</span>
+      </div>
+
+      <!-- Suggested questions -->
+      <div id="suggestions-row" class="suggestions-row" aria-label="Suggested questions">
+        <button class="suggestion-chip" data-q="What products do you offer?">
+          <i class="fas fa-box-open"></i> What products do you offer?
+        </button>
+        <button class="suggestion-chip" data-q="What is your shipping policy?">
+          <i class="fas fa-truck"></i> Shipping policy?
+        </button>
+        <button class="suggestion-chip" data-q="How can I return an item?">
+          <i class="fas fa-undo"></i> Return an item?
+        </button>
+        <button class="suggestion-chip" data-q="How do I track my order?">
+          <i class="fas fa-search-location"></i> Track my order?
+        </button>
+      </div>
+
+      <!-- Input bar -->
+      <form id="chat-form" class="chat-input-bar" autocomplete="off">
+        <button type="button" id="attach-btn" class="icon-btn" title="Attach file (coming soon)" aria-label="Attach file" disabled>
+          <i class="fas fa-paperclip"></i>
+        </button>
+        <textarea
+          id="chat-input"
+          placeholder="Ask me anything about products, orders, or policies…"
+          rows="1"
+          maxlength="1000"
+          aria-label="Type your message"
+          aria-required="true"
+        ></textarea>
+        <span id="char-count" class="char-count">0/1000</span>
+        <button type="submit" id="send-btn" class="send-btn" aria-label="Send message">
+          <i class="fas fa-paper-plane"></i>
+        </button>
+      </form>
+
+    </section>
+
+  </main>
+
+  <!-- ===== BACKEND CONFIG MODAL ===== -->
+  <div id="config-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="config-modal-title">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2 id="config-modal-title"><i class="fas fa-plug"></i> Backend Configuration</h2>
+        <button class="modal-close" id="close-config-modal" aria-label="Close modal"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-desc">Enter your backend API URL. Leave blank to use demo mode with simulated responses.</p>
+        <label for="backend-url-input" class="form-label">Backend API URL</label>
+        <input
+          type="url"
+          id="backend-url-input"
+          class="form-input"
+          placeholder="http://localhost:8000"
+          value=""
+        />
+        <div class="form-hint">Example: <code>http://localhost:8000</code> or <code>https://your-api.railway.app</code></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" id="cancel-config">Cancel</button>
+        <button class="btn-primary" id="save-config">
+          <i class="fas fa-save"></i> Save & Test Connection
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== CLEAR CHAT CONFIRM MODAL ===== -->
+  <div id="clear-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="clear-modal-title">
+    <div class="modal-box small">
+      <div class="modal-header">
+        <h2 id="clear-modal-title"><i class="fas fa-trash-alt"></i> Clear Conversation</h2>
+        <button class="modal-close" id="close-clear-modal" aria-label="Close modal"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to clear the entire conversation? This cannot be undone.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" id="cancel-clear">Cancel</button>
+        <button class="btn-danger" id="confirm-clear">
+          <i class="fas fa-trash-alt"></i> Yes, Clear It
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TOAST NOTIFICATIONS ===== -->
+  <div id="toast-container" aria-live="assertive" aria-atomic="true"></div>
+
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/chat.js"></script>
+  <script src="js/theme.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

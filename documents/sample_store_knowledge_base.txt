@@ -1,0 +1,253 @@
+Product Catalog & Store Policies — ShopBot AI Sample Store
+
+=================================================================
+ABOUT US
+=================================================================
+
+Welcome to ShopBot AI Sample Store! We are a leading e-commerce retailer offering a wide range of products including electronics, home goods, clothing, and accessories. We've been serving customers since 2019 and pride ourselves on competitive pricing, fast shipping, and exceptional customer service.
+
+Website: www.shopbot-ai-sample.com
+Customer Service: support@shopbot-ai-sample.com
+Phone: 1-800-SHOPBOT (Mon–Fri 9am–6pm EST, Sat 10am–4pm)
+
+
+=================================================================
+FEATURED PRODUCTS
+=================================================================
+
+ELECTRONICS
+-----------
+• Wireless Bluetooth Headphones XPro 500
+  Price: $79.99 | SKU: WBH-500
+  Battery: 30 hours | Quick charge (15 min = 3 hours)
+  Colors: Black, White, Navy Blue
+  Warranty: 1 year
+
+• UltraBook Laptop Pro 15"
+  Price: $899.00 | SKU: UBP-15
+  Processor: Intel Core i7-13th Gen
+  RAM: 16GB DDR5 | Storage: 512GB SSD
+  Display: 15.6" FHD IPS 144Hz
+  Battery: Up to 12 hours
+  Warranty: 2 years
+
+• SmartWatch Series 8
+  Price: $249.99 | SKU: SWS-8
+  Features: Heart rate, GPS, sleep tracking, 50m water resistant
+  Battery: 7 days standby
+  Compatible: iOS 14+ and Android 9+
+  Warranty: 1 year
+
+• 4K Action Camera
+  Price: $129.99 | SKU: CAM-4K
+  Resolution: 4K/60fps, 12MP photos
+  Waterproof: Up to 30m without case
+  Stabilisation: Electronic 6-axis EIS
+  Includes: 2 batteries, case, mounts
+  Warranty: 1 year
+
+HOME & KITCHEN
+--------------
+• Smart Coffee Maker Pro
+  Price: $89.99 | SKU: SCM-PRO
+  App controlled, schedule brews from anywhere
+  Capacity: 12 cups
+  Features: Built-in grinder, keep-warm plate, programmable
+  Warranty: 2 years
+
+• Robot Vacuum Cleaner RV-3000
+  Price: $329.99 | SKU: RVC-3000
+  Battery: 150 min runtime, auto-recharge
+  Suction: 2700 Pa | Noise: < 65dB
+  Features: Smart mapping, app control, HEPA filter
+  Warranty: 1 year
+
+• Air Purifier HEPA Max
+  Price: $149.99 | SKU: APH-MAX
+  Coverage: Up to 500 sq ft
+  Filter: True HEPA + Activated Carbon
+  CADR: 200 CFM
+  Features: Auto mode, sleep mode, filter replacement indicator
+  Warranty: 2 years
+
+CLOTHING & ACCESSORIES
+----------------------
+• Premium Cotton T-Shirt (Pack of 3)
+  Price: $39.99 | SKU: PCT-3
+  Material: 100% organic cotton, 180gsm
+  Sizes: XS, S, M, L, XL, XXL
+  Colors: White, Black, Gray, Navy, Red
+  Care: Machine washable, tumble dry low
+
+• Running Shoes AeroFit Pro
+  Price: $119.99 | SKU: RSA-PRO
+  Sizes: US 6–15 (half sizes available)
+  Material: Breathable mesh upper, rubber outsole
+  Features: Memory foam insole, reflective detailing
+  Best for: Road running, gym, casual
+
+
+=================================================================
+SHIPPING POLICY
+=================================================================
+
+FREE SHIPPING on all orders over $50 (US only).
+
+Shipping Options (United States):
+• Standard Shipping: 3–5 business days — FREE over $50, else $5.99
+• Express Shipping:  1–2 business days — $12.99
+• Overnight:        Next business day  — $24.99 (order by 2pm EST)
+
+International Shipping:
+• Canada: 5–10 business days — $14.99
+• UK/Europe: 7–14 business days — $24.99
+• Australia/NZ: 10–18 business days — $29.99
+• Rest of World: 14–21 business days — $34.99
+• Note: International orders may be subject to customs duties
+
+Processing Time:
+Orders are processed within 1–2 business days. During sales events,
+processing may take 2–3 business days.
+
+Tracking:
+All orders include free tracking. You'll receive an email with your
+tracking number once your order ships. Track at: www.shopbot-ai-sample.com/track
+
+
+=================================================================
+RETURN & REFUND POLICY
+=================================================================
+
+We want you to love your purchase! If you're not satisfied, here's
+our hassle-free return policy:
+
+Return Window: 30 days from delivery date
+
+Eligible Items:
+• Unused items in original packaging with all tags attached
+• Electronics must be returned in original box with all accessories
+
+Non-Returnable Items:
+• Items marked "Final Sale" or "Non-Returnable"
+• Opened personal care items
+• Downloaded digital content
+• Custom/personalized items
+• Gift cards
+
+How to Return:
+1. Log in to your account at www.shopbot-ai-sample.com/account
+2. Go to "My Orders" and select the order
+3. Click "Return Item" and select reason
+4. Print the prepaid return label (free for US returns)
+5. Drop off at any UPS location
+
+Refund Timeline:
+• Refund issued within 3–5 business days after we receive the item
+• Credit card refunds: 5–10 business days to appear
+• Store credit: Instant once item is received
+
+Exchanges:
+For exchanges, return the original item and place a new order. 
+We'll process both simultaneously.
+
+
+=================================================================
+WARRANTY INFORMATION
+=================================================================
+
+All products come with manufacturer's warranty:
+• Electronics: 1–2 years (see individual product listings)
+• Clothing/Accessories: 90 days for manufacturing defects
+
+For warranty claims:
+Email: warranty@shopbot-ai-sample.com
+Include: Order number, description of issue, photos if applicable
+
+Response time: 1–2 business days
+
+
+=================================================================
+PAYMENT METHODS
+=================================================================
+
+We accept:
+• Credit Cards: Visa, Mastercard, American Express, Discover
+• Digital Wallets: PayPal, Apple Pay, Google Pay
+• Buy Now Pay Later: Klarna (split into 4 payments, 0% interest)
+• Gift Cards: ShopBot AI Gift Cards (purchase in-store or online)
+
+All payments are secured with 256-bit SSL encryption.
+We never store your full card details.
+
+
+=================================================================
+ORDER MANAGEMENT
+=================================================================
+
+Track Your Order:
+• Visit: www.shopbot-ai-sample.com/track
+• Email: You'll receive tracking info when your order ships
+• App: Download our app for real-time notifications
+
+Modify or Cancel an Order:
+• Orders can be modified or cancelled within 1 hour of placing
+• Contact us immediately: support@shopbot-ai-sample.com or 1-800-SHOPBOT
+• Once shipped, orders cannot be cancelled (use return process instead)
+
+Order Issues:
+• Wrong item received: Email us with photos — we'll ship the correct item
+• Damaged in transit: Email us with photos — we'll send a replacement
+• Missing item: Contact us within 7 days of delivery
+
+
+=================================================================
+LOYALTY PROGRAM — ShopBot Rewards
+=================================================================
+
+Earn points on every purchase:
+• 1 point per $1 spent
+• 500 points = $5 reward
+• Double points on your birthday month
+• Triple points during seasonal sales
+
+Tiers:
+• Bronze: 0–499 points/year — standard benefits
+• Silver: 500–1499 points/year — free standard shipping
+• Gold: 1500+ points/year — free express shipping + priority support
+
+Sign up free at: www.shopbot-ai-sample.com/rewards
+
+
+=================================================================
+FREQUENTLY ASKED QUESTIONS
+=================================================================
+
+Q: Do you offer price matching?
+A: Yes! If you find the same item cheaper at a major US retailer
+   within 14 days of purchase, we'll match the price and refund
+   the difference.
+
+Q: Can I use multiple discount codes?
+A: Only one discount code can be applied per order. The best
+   available discount is automatically applied.
+
+Q: Do you ship to PO Boxes?
+A: Standard shipping ships to PO Boxes. Express and Overnight
+   shipping requires a physical address.
+
+Q: What is your bulk/wholesale policy?
+A: For orders of 50+ units, contact wholesale@shopbot-ai-sample.com
+   for special pricing and net terms.
+
+Q: Are your products authentic?
+A: 100% — we source directly from manufacturers and authorized
+   distributors. We offer a authenticity guarantee.
+
+Q: How do I use a gift card?
+A: Enter the gift card code at checkout in the "Promo/Gift Card"
+   field. Multiple gift cards can be combined.
+
+Q: What if my package shows delivered but I didn't receive it?
+A: Check with neighbors and building management first. If still
+   missing, contact us within 3 days of the delivery date.
+   We'll open an investigation with the carrier.

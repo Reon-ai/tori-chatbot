@@ -1,0 +1,68 @@
+# ================================================================
+# docker-compose.yml
+# Full stack: Backend API + Nginx reverse proxy
+# Usage:
+#   docker-compose up --build        (first run)
+#   docker-compose up -d             (background)
+#   docker-compose down              (stop)
+#   docker-compose logs -f backend   (view logs)
+# ================================================================
+
+version: "3.9"
+
+services:
+
+  # ── FastAPI Backend ────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: rag-chatbot-backend
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - VECTOR_DB_PATH=/app/data/vectordb
+      - SQLITE_PATH=/app/data/chatbot.db
+      - DOCUMENTS_DIR=/app/documents
+      - ALLOWED_ORIGINS=http://localhost,http://localhost:80,http://localhost:3000
+    volumes:
+      # Persist vector database and SQLite between restarts
+      - rag_data:/app/data
+      # Mount documents folder from host so you can drop files in
+      - ./documents:/app/documents
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - rag_network
+
+  # ── Nginx Reverse Proxy ────────────────────────────────────────
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: rag-chatbot-nginx
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"    # HTTPS ready (add certs to ./nginx/certs/)
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/certs:/etc/nginx/certs:ro     # optional SSL certs
+      - .:/usr/share/nginx/html:ro             # serves the static frontend
+    networks:
+      - rag_network
+
+volumes:
+  rag_data:
+    driver: local
+
+networks:
+  rag_network:
+    driver: bridge
