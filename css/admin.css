@@ -49,10 +49,11 @@
 .admin-app {
   display: flex;
   min-height: 100vh;
+  min-height: 100dvh;
 }
 .admin-app.hidden { display: none !important; }
 
-/* ---------- Sidebar ---------- */
+/* ---------- Sidebar — hidden drawer on mobile, fixed rail on tablet+ ---------- */
 .admin-sidebar {
   width: var(--sidebar-w);
   background: var(--brand-black);
@@ -62,12 +63,18 @@
   position: fixed;
   top: 0; left: 0; bottom: 0;
   z-index: 500;
+  transform: translateX(calc(-1 * var(--sidebar-w)));  /* hidden by default */
   transition: transform .25s ease, box-shadow .25s ease;
 }
-
-.admin-sidebar.collapsed {
-  transform: translateX(calc(-1 * var(--sidebar-w)));
-  box-shadow: none;
+.admin-sidebar.open {
+  transform: translateX(0);
+  box-shadow: 4px 0 32px rgba(0,0,0,.5);
+}
+@media (min-width: 768px) {
+  .admin-sidebar {
+    transform: translateX(0);
+    box-shadow: none;
+  }
 }
 
 .sidebar-brand {
@@ -97,19 +104,21 @@
 .nav-item {
   width: 100%;
   text-align: left;
-  padding: .65rem .85rem;
+  padding: .75rem .85rem;
+  min-height: 44px;              /* touch target */
   border: none;
   border-radius: var(--radius-sm);
   background: transparent;
   color: rgba(255,255,255,.55);
   font-family: var(--font);
-  font-size: .88rem;
+  font-size: .9rem;
   font-weight: 500;
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: .65rem;
   transition: all var(--transition);
+  -webkit-tap-highlight-color: transparent;
 }
 .nav-item:hover {
   background: rgba(252,227,0,.1);
@@ -130,12 +139,13 @@
   justify-content: center;
 }
 
+/* Sidebar toggle — visible on mobile, hidden on tablet+ */
 .sidebar-toggle {
-  display: none;
+  display: flex;                 /* always visible on mobile */
   position: fixed;
-  top: 1rem; left: 1rem;
+  top: .75rem; left: .75rem;
   z-index: 600;
-  width: 38px; height: 38px;
+  width: 44px; height: 44px;    /* touch target */
   border-radius: var(--radius-sm);
   border: 2px solid var(--brand-yellow);
   background: var(--brand-black);
@@ -146,15 +156,25 @@
   font-size: 1rem;
   box-shadow: 0 2px 8px rgba(0,0,0,.4);
   transition: all var(--transition);
+  -webkit-tap-highlight-color: transparent;
+}
+@media (min-width: 768px) {
+  .sidebar-toggle { display: none; }
 }
 
-/* ---------- Admin Content ---------- */
+/* ---------- Admin Content — mobile first ---------- */
 .admin-content {
-  margin-left: var(--sidebar-w);
+  margin-left: 0;                /* no sidebar offset on mobile */
   flex: 1;
   min-width: 0;
-  padding: 2rem;
+  padding: 1rem .75rem 1.5rem 3.75rem;  /* left indent clears toggle btn */
   overflow-x: hidden;
+}
+@media (min-width: 768px) {
+  .admin-content {
+    margin-left: var(--sidebar-w);
+    padding: 2rem;
+  }
 }
 
 /* Tabs */
@@ -187,12 +207,19 @@
   margin-left: auto;
 }
 
-/* ---------- KPI Cards ---------- */
+/* ---------- KPI Cards — 2 col mobile → auto-fit desktop ---------- */
 .kpi-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 1rem;
-  margin-bottom: 1.5rem;
+  grid-template-columns: 1fr 1fr;
+  gap: .75rem;
+  margin-bottom: 1.25rem;
+}
+@media (min-width: 480px) { .kpi-grid { gap: 1rem; } }
+@media (min-width: 900px) {
+  .kpi-grid {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    margin-bottom: 1.5rem;
+  }
 }
 
 .kpi-card {
@@ -238,12 +265,15 @@
 }
 .kpi-label { font-size: .78rem; color: var(--text-3); font-weight: 500; }
 
-/* ---------- Chart Cards ---------- */
+/* ---------- Chart Cards — stacked mobile → side by side desktop ---------- */
 .charts-row {
   display: grid;
-  grid-template-columns: 2fr 1fr;
+  grid-template-columns: 1fr;
   gap: 1rem;
   margin-bottom: 1.5rem;
+}
+@media (min-width: 900px) {
+  .charts-row { grid-template-columns: 2fr 1fr; }
 }
 
 .chart-card {
@@ -485,11 +515,14 @@
 .page-btn:hover { background: rgba(252,227,0,.15); color: var(--brand-black); border-color: var(--brand-yellow); }
 .page-btn.active { background: var(--brand-yellow); color: var(--brand-black); border-color: var(--brand-yellow); font-weight: 700; }
 
-/* ---------- Config Cards ---------- */
+/* ---------- Config Cards — stacked mobile → 2 col desktop ---------- */
 .config-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1.25rem;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+@media (min-width: 768px) {
+  .config-grid { grid-template-columns: 1fr 1fr; gap: 1.25rem; }
 }
 
 .config-card {
@@ -591,37 +624,21 @@
 }
 
 /* ============================================================
-   RESPONSIVE – Admin
+   RESPONSIVE — upward enhancements (mobile-first set above)
    ============================================================ */
-@media (max-width: 1024px) {
-  .charts-row { grid-template-columns: 1fr; }
-  .config-grid { grid-template-columns: 1fr; }
-  .config-card.full-width { grid-column: auto; }
+
+/* Tablet+ layout tweaks */
+@media (min-width: 768px) {
+  .page-header { flex-direction: row; align-items: center; }
+  .page-actions { width: auto; }
+  .table-toolbar { flex-direction: row; align-items: center; }
+  .search-input-wrap { max-width: 360px; }
+  .config-card.full-width { grid-column: 1 / -1; }
+  .login-card { padding: 2.5rem; }
 }
 
-@media (max-width: 768px) {
-  .admin-sidebar {
-    transform: translateX(calc(-1 * var(--sidebar-w)));
-    box-shadow: none;
-    z-index: 800;
-  }
-  .admin-sidebar.open {
-    transform: translateX(0);
-    box-shadow: 4px 0 24px rgba(0,0,0,.15);
-  }
-  .sidebar-toggle { display: flex; }
-  .admin-content { margin-left: 0; padding: 1.25rem 1rem 1.25rem 3.5rem; }
-
-  .kpi-grid { grid-template-columns: 1fr 1fr; }
-  .page-header { flex-direction: column; align-items: flex-start; }
-  .page-actions { width: 100%; }
-
-  .table-toolbar { flex-direction: column; align-items: stretch; }
-  .search-input-wrap { max-width: none; }
-}
-
-@media (max-width: 480px) {
-  .admin-content { padding: 1rem .75rem 1rem 3rem; }
+/* Small phone tweaks */
+@media (max-width: 360px) {
+  .admin-content { padding: 1rem .5rem 1.5rem 3.25rem; }
   .kpi-grid { grid-template-columns: 1fr; }
-  .login-card { padding: 1.75rem 1.25rem; }
 }
