@@ -21,6 +21,7 @@ from fastapi import (
     APIRouter, Depends, File, Header, HTTPException,
     Request, UploadFile, status, BackgroundTasks,
 )
+from fastapi.responses import Response
 
 from app.models.schemas import (
     DocumentListResponse, DocumentResponse,
@@ -42,12 +43,6 @@ async def require_admin(
     x_admin_password: Optional[str] = Header(None, alias="X-Admin-Password"),
     authorization:    Optional[str] = Header(None),
 ) -> None:
-    """
-    Simple password check via:
-    - X-Admin-Password header, OR
-    - Authorization: Bearer <password> header
-    In production, replace with JWT or OAuth2.
-    """
     settings = get_settings()
     provided = None
 
@@ -86,7 +81,6 @@ async def upload_document(
     """Upload and asynchronously ingest a document."""
     settings = get_settings()
 
-    # Validate file type
     ext = Path(file.filename or "").suffix.lower()
     if ext not in ALLOWED_EXTENSIONS:
         raise HTTPException(
@@ -94,7 +88,6 @@ async def upload_document(
             detail=f"Unsupported file type '{ext}'. Allowed: {', '.join(ALLOWED_EXTENSIONS)}",
         )
 
-    # Validate file size
     content = await file.read()
     size_mb = len(content) / (1024 * 1024)
     if size_mb > settings.max_file_size_mb:
@@ -103,7 +96,6 @@ async def upload_document(
             detail=f"File too large ({size_mb:.1f} MB). Max: {settings.max_file_size_mb} MB",
         )
 
-    # Save to documents folder
     doc_id   = str(uuid.uuid4())
     doc_name = file.filename or f"document_{doc_id}{ext}"
     save_dir = Path(settings.documents_dir)
@@ -113,11 +105,9 @@ async def upload_document(
     with open(save_path, "wb") as f_out:
         f_out.write(content)
 
-    # Record in DB (status = processing)
     await db.create_document(doc_id, doc_name, len(content), ext.lstrip(".").upper())
     await db.update_document_status(doc_id, "processing")
 
-    # Process asynchronously so upload returns fast
     async def ingest():
         result = await processor.process_file(save_path, doc_id, doc_name)
         await db.update_document_status(
@@ -167,13 +157,14 @@ async def list_documents(db: Database = Depends(get_db)) -> DocumentListResponse
 @router.delete(
     "/documents/{doc_id}",
     status_code=status.HTTP_204_NO_CONTENT,
+    response_class=Response,
     dependencies=[Depends(require_admin)],
 )
 async def delete_document(
     doc_id:    str,
     db:        Database   = Depends(get_db),
     vs:        Any        = Depends(get_vector_store),
-) -> None:
+) -> Response:
     """Delete a document and remove its vectors from the knowledge base."""
     deleted = await db.delete_document(doc_id)
     if not deleted:
@@ -181,17 +172,17 @@ async def delete_document(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Document not found.",
         )
-    # Remove vectors
     count = await vs.delete_by_document_id(doc_id)
     logger.info(f"Deleted document {doc_id} ({count} vectors removed)")
 
-    # Remove file from disk
     settings = get_settings()
     for ext in ALLOWED_EXTENSIONS:
         p = Path(settings.documents_dir) / f"{doc_id}{ext}"
         if p.exists():
             p.unlink()
             break
+
+    return Response(status_code=204)
 
 
 @router.post(
