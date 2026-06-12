@@ -3,6 +3,7 @@ backend/app/routers/chat.py
 Chat API endpoints.
 POST /api/chat          — send a message & get RAG response
 GET  /api/chat/history/{session_id} — retrieve conversation history
+POST /api/chat/transcribe — audio → text via OpenAI Whisper
 POST /api/chat/rating   — submit thumbs-up/down feedback
 """
 
@@ -12,7 +13,7 @@ import uuid
 from datetime import datetime
 from typing import Any, Dict, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
 
 from app.models.schemas import (
     ChatRequest, ChatResponse,
@@ -31,26 +32,16 @@ router = APIRouter(prefix="/api/chat", tags=["chat"])
 _request_counts: Dict[str, list] = {}
 
 def _check_rate_limit(client_ip: str, limit: int = 30) -> bool:
-    """
-    Allow `limit` requests per minute per IP.
-    Returns True if allowed, False if rate-limited.
-    """
     import time
-
     now    = time.time()
-    window = 60  # seconds
-
+    window = 60
     if client_ip not in _request_counts:
         _request_counts[client_ip] = []
-
-    # Purge old timestamps
     _request_counts[client_ip] = [
         ts for ts in _request_counts[client_ip] if now - ts < window
     ]
-
     if len(_request_counts[client_ip]) >= limit:
         return False
-
     _request_counts[client_ip].append(now)
     return True
 
@@ -65,42 +56,19 @@ async def chat(
     rag_service: RAGService = Depends(get_rag_service),
     db:          Database   = Depends(get_db),
 ) -> ChatResponse:
-    """
-    Main chat endpoint.
-    - Sanitises input
-    - Runs RAG pipeline
-    - Saves conversation to SQLite
-    - Returns clean response (no source citations)
-    """
     settings   = get_settings()
     client_ip  = request.client.host if request.client else "unknown"
-
-    # Rate limiting
     if not _check_rate_limit(client_ip, limit=settings.rate_limit_per_minute):
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="Too many requests. Please wait a moment before trying again.",
-        )
-
-    # Input validation
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                            detail="Too many requests. Please wait a moment.")
     if not payload.message.strip():
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Message cannot be empty.",
-        )
-
-    logger.info(
-        f"Chat request | session={payload.session_id[:8]} | "
-        f"ip={client_ip} | msg='{payload.message[:80]}'"
-    )
-
-    # RAG pipeline
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                            detail="Message cannot be empty.")
+    logger.info(f"Chat request | session={payload.session_id[:8]} | ip={client_ip} | msg='{payload.message[:80]}'")
     result = await rag_service.generate_response(
         session_id=payload.session_id,
         user_message=payload.message,
     )
-
-    # Persist to DB (sources stored internally, never sent to client)
     message_id = await db.save_conversation(
         session_id=payload.session_id,
         user_message=payload.message,
@@ -108,7 +76,6 @@ async def chat(
         retrieved_chunks=result.get("retrieved_chunks", []),
         processing_ms=result.get("processing_ms"),
     )
-
     return ChatResponse(
         response=result["response"],
         message_id=message_id,
@@ -125,7 +92,6 @@ async def get_history(
     session_id: str,
     db:         Database = Depends(get_db),
 ) -> ChatHistoryResponse:
-    """Retrieve conversation history for a session."""
     messages = await db.get_session_history(session_id, limit=50)
     items = [
         ChatHistoryItem(
@@ -138,11 +104,52 @@ async def get_history(
         )
         for m in messages
     ]
-    return ChatHistoryResponse(
-        session_id=session_id,
-        messages=items,
-        total=len(items),
-    )
+    return ChatHistoryResponse(session_id=session_id, messages=items, total=len(items))
+
+
+# ══════════════════════════════════════════════════════════════════
+# POST /api/chat/transcribe  — audio → text via OpenAI Whisper
+# ══════════════════════════════════════════════════════════════════
+@router.post("/transcribe", status_code=status.HTTP_200_OK)
+async def transcribe_audio(
+    file: UploadFile = File(...),
+) -> Dict[str, Any]:
+    """
+    Receive audio (webm/ogg) from browser MediaRecorder,
+    transcribe via OpenAI Whisper, return text.
+    """
+    settings = get_settings()
+    if not settings.openai_api_key:
+        raise HTTPException(status_code=503, detail="OpenAI API key not configured.")
+
+    audio_bytes = await file.read()
+    if len(audio_bytes) < 500:
+        raise HTTPException(status_code=422, detail="Audio too short — no speech detected.")
+
+    filename = file.filename or "audio.webm"
+    ext = filename.rsplit(".", 1)[-1].lower()
+    if ext not in {"webm", "ogg", "mp4", "wav", "mp3", "m4a"}:
+        ext = "webm"
+
+    try:
+        import openai, io
+        client = openai.AsyncOpenAI(api_key=settings.openai_api_key)
+        audio_file = io.BytesIO(audio_bytes)
+        audio_file.name = f"audio.{ext}"
+        response = await client.audio.transcriptions.create(
+            model="whisper-1",
+            file=audio_file,
+            language="en",
+        )
+        transcript = response.text.strip()
+        logger.info(f"Whisper transcript: '{transcript[:80]}'")
+        return {"transcript": transcript}
+    except openai.APIError as e:
+        logger.error(f"Whisper API error: {e}")
+        raise HTTPException(status_code=502, detail=f"Transcription failed: {str(e)}")
+    except Exception as e:
+        logger.error(f"Transcription error: {e}")
+        raise HTTPException(status_code=500, detail=f"Transcription error: {str(e)}")
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -153,11 +160,11 @@ async def submit_rating(
     payload: RatingRequest,
     db:      Database = Depends(get_db),
 ) -> Dict[str, Any]:
-    """Record a thumbs-up/down rating for a bot message."""
     success = await db.update_rating(payload.message_id, payload.rating)
     if not success:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Message not found.",
-        )
+        raise HTTPException(status_code=404, detail="Message not found.")
     return {"status": "ok", "message_id": payload.message_id, "rating": payload.rating}
+
+
+
+  
