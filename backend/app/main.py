@@ -105,12 +105,23 @@ def create_app() -> FastAPI:
     )
 
     # ── Middleware ────────────────────────────────────────────────
+    # IMPORTANT: Do NOT use allow_headers=["*"] with allow_credentials=True —
+    # that triggers a Starlette bug where "*" is sent literally in the
+    # preflight response, which blocks the Authorization header.
+    # Fix: list every allowed header explicitly.
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.origins_list,
         allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+        allow_headers=[
+            "Authorization",
+            "Content-Type",
+            "X-Admin-Password",
+            "X-Requested-With",
+            "Accept",
+            "Origin",
+        ],
     )
     app.add_middleware(GZipMiddleware, minimum_size=500)
 
@@ -133,7 +144,7 @@ def create_app() -> FastAPI:
         db = get_db()
         vs = get_vector_store()
 
-        sqlite_ok  = await db.health_check()
+        sqlite_ok   = await db.health_check()
         vectordb_ok = await vs.health_check() if vs.is_ready else False
 
         # Check OpenAI quickly (non-blocking)
@@ -158,9 +169,9 @@ def create_app() -> FastAPI:
             openai=openai_ok,
             sqlite=sqlite_ok,
             details={
-                "vector_db_type":  settings.vector_db_type,
-                "openai_model":    settings.openai_chat_model,
-                "embed_model":     settings.openai_embedding_model,
+                "vector_db_type": settings.vector_db_type,
+                "openai_model":   settings.openai_chat_model,
+                "embed_model":    settings.openai_embedding_model,
             },
         )
 
@@ -168,11 +179,11 @@ def create_app() -> FastAPI:
     @app.get("/", include_in_schema=False)
     async def root() -> Dict[str, Any]:
         return {
-            "name":        settings.app_name,
-            "version":     settings.version,
-            "status":      "running",
-            "docs":        "/docs",
-            "health":      "/health",
+            "name":    settings.app_name,
+            "version": settings.version,
+            "status":  "running",
+            "docs":    "/docs",
+            "health":  "/health",
         }
 
     return app
@@ -191,3 +202,4 @@ if __name__ == "__main__":
         reload=settings.environment == "development",
         log_level=settings.log_level.lower(),
     )
+
