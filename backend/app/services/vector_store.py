@@ -61,10 +61,17 @@ class VectorStore:
                 path=self.settings.vector_db_path,
                 settings=ChromaSettings(anonymized_telemetry=False),
             )
-            self._collection = self._client.get_or_create_collection(
-                name=self.settings.vector_db_collection,
-                metadata={"hnsw:space": "cosine"},
-            )
+            try:
+                self._collection = self._client.get_or_create_collection(
+                    name=self.settings.vector_db_collection,
+                    metadata={"hnsw:space": "cosine"},
+                )
+            except Exception as col_err:
+                logger.warning(f"get_or_create_collection failed ({col_err}), retrying")
+                import time; time.sleep(1)
+                self._collection = self._client.get_collection(
+                    name=self.settings.vector_db_collection,
+                )
             logger.info(
                 f"ChromaDB ready. Collection '{self.settings.vector_db_collection}' "
                 f"has {self._collection.count()} documents."
