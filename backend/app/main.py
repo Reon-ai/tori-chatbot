@@ -62,10 +62,41 @@ async def lifespan(app: FastAPI):
         logger.warning("  → System will run without RAG (responses will be generic)")
 
     # ── Start folder watcher in background ───────────────────────
+    # ── Auto-ingest documents folder if ChromaDB is empty ────────
     if settings.environment != "test":
         processor = get_processor()
+        try:
+            doc_count = vs._collection.count() if vs._collection else 0
+        except Exception:
+            doc_count = 0
+
+        if doc_count == 0:
+            docs_path = Path(settings.documents_dir)
+            supported  = {".pdf", ".txt", ".md", ".csv", ".xlsx"}
+            files      = [f for f in docs_path.iterdir()
+                          if f.is_file() and f.suffix.lower() in supported
+                          and f.name != "README.md"]
+            if files:
+                logger.info(f"ChromaDB empty — auto-ingesting {len(files)} files from '{settings.documents_dir}'")
+                async def _auto_ingest():
+                    for fpath in files:
+                        try:
+                            result = await processor.process_file(str(fpath))
+                            logger.info(f"  ✓ Ingested: {fpath.name} → {result.get('chunks', '?')} chunks")
+                        except Exception as ie:
+                            logger.error(f"  ✗ Failed: {fpath.name} — {ie}")
+                    logger.info("Auto-ingest complete.")
+                asyncio.create_task(_auto_ingest())
+            else:
+                logger.warning(f"ChromaDB empty and no files found in '{settings.documents_dir}'")
+        else:
+            logger.info(f"ChromaDB has {doc_count} vectors — skipping auto-ingest")
+
+    # ── Start folder watcher in background ───────────────────────
+    if settings.environment != "test":
         asyncio.create_task(processor.watch_folder())
         logger.info(f"✓ Document watcher started on '{settings.documents_dir}'")
+
 
     # ── Cleanup task ─────────────────────────────────────────────
     async def periodic_cleanup():
