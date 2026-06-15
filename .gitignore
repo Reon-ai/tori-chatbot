@@ -34,9 +34,6 @@ env/
 # ── Data (generated at runtime) ────────────────────────────────
 data/
 !data/.gitkeep
-documents/
-!documents/.gitkeep
-!documents/README.md
 
 # ── Node.js ────────────────────────────────────────────────────
 node_modules/
