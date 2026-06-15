@@ -9,6 +9,7 @@ FastAPI application factory.
 
 from __future__ import annotations
 
+import uuid
 import asyncio
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -81,7 +82,9 @@ async def lifespan(app: FastAPI):
                 async def _auto_ingest():
                     for fpath in files:
                         try:
-                            result = await processor.process_file(str(fpath))
+                            doc_id = str(uuid.uuid5(uuid.NAMESPACE_URL, fpath.name))
+                            result = await processor.process_file(str(fpath), doc_id)
+
                             logger.info(f"  ✓ Ingested: {fpath.name} → {result.get('chunks', '?')} chunks")
                         except Exception as ie:
                             logger.error(f"  ✗ Failed: {fpath.name} — {ie}")
