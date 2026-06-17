@@ -161,7 +161,6 @@ const CHAT = (() => {
         if (messageId) {
           try { await API.submitRating(messageId, ratingValue); } catch {}
         }
-        // Save rating to demo storage
         saveRatingToDemo(messageId, ratingValue);
       };
 
@@ -254,7 +253,12 @@ const CHAT = (() => {
 
       hideTyping();
       if (data?.response) {
-        addMessage('bot', data.response, { messageId: data.message_id });
+        // ── Check if backend returned a form trigger ─────────────
+        if (data.type === 'form' && data.form_id) {
+          FORMS.showForm(data.form_id, data.response);
+        } else {
+          addMessage('bot', data.response, { messageId: data.message_id });
+        }
       } else {
         addErrorMessage('Empty response received');
       }
@@ -295,13 +299,11 @@ const CHAT = (() => {
 
   // ── Event bindings ─────────────────────────────────────────────
   function bindEvents() {
-    // Form submit
     refs.form?.addEventListener('submit', e => {
       e.preventDefault();
       sendMessage(refs.input?.value || '');
     });
 
-    // Enter key (Shift+Enter = newline)
     refs.input?.addEventListener('keydown', e => {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
@@ -309,7 +311,6 @@ const CHAT = (() => {
       }
     });
 
-    // Auto-resize & char count
     refs.input?.addEventListener('input', () => {
       autoResize();
       const len = (refs.input.value || '').length;
@@ -319,14 +320,12 @@ const CHAT = (() => {
       }
     });
 
-    // Suggestion chips
     document.querySelectorAll('.suggestion-chip').forEach(chip => {
       chip.addEventListener('click', () => {
         sendMessage(chip.dataset.q || chip.textContent.trim());
       });
     });
 
-    // Clear chat button
     refs.clearBtn?.addEventListener('click', () => {
       refs.clearModal?.classList.remove('hidden');
     });
@@ -337,7 +336,6 @@ const CHAT = (() => {
       clearChat();
     });
 
-    // Close modal on backdrop click
     refs.clearModal?.addEventListener('click', e => {
       if (e.target === refs.clearModal) refs.clearModal.classList.add('hidden');
     });
@@ -353,7 +351,7 @@ const CHAT = (() => {
     refs.input?.focus();
   }
 
-  return { init, addMessage, addErrorMessage, clearChat, setStatus };
+  return { init, addMessage, addErrorMessage, clearChat, setStatus, scrollToBottom };
 })();
 
 window.CHAT = CHAT;

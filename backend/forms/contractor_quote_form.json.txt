@@ -1,0 +1,96 @@
+{
+  "id": "contractor_quote",
+  "title": "Contractor / Trade Quote Request",
+  "description": "Request a trade quote for your project. Contractors, builders, and interior designers qualify for special trade pricing.",
+  "trigger_keywords": [
+    "contractor", "trade quote", "trade price", "bulk order", "builder",
+    "developer", "interior designer", "quantity surveyor", "architect",
+    "commercial project", "project quote", "trade account", "wholesale",
+    "trade pricing", "professional", "business account"
+  ],
+  "fields": [
+    {
+      "name": "customerName",
+      "label": "Full name",
+      "type": "text",
+      "required": true,
+      "placeholder": "e.g. John Smith"
+    },
+    {
+      "name": "companyName",
+      "label": "Company name (if applicable)",
+      "type": "text",
+      "required": false,
+      "placeholder": "e.g. Smith Construction Pty Ltd"
+    },
+    {
+      "name": "phone",
+      "label": "Contact number",
+      "type": "tel",
+      "required": true,
+      "placeholder": "e.g. 082 123 4567"
+    },
+    {
+      "name": "email",
+      "label": "Email address",
+      "type": "email",
+      "required": true,
+      "placeholder": "e.g. john@smithconstruction.co.za"
+    },
+    {
+      "name": "area",
+      "label": "Project area or suburb",
+      "type": "text",
+      "required": true,
+      "placeholder": "e.g. Green Point, Cape Town"
+    },
+    {
+      "name": "tradeRole",
+      "label": "Your role / profession",
+      "type": "select",
+      "options": ["Contractor / Builder", "Interior Designer", "Architect", "Quantity Surveyor", "Property Developer", "DIY Homeowner", "Other"],
+      "required": true
+    },
+    {
+      "name": "productType",
+      "label": "Products required",
+      "type": "select",
+      "options": ["Tiles — floor & wall", "Vinyl / LVT", "Laminate flooring", "Sanitaryware", "Adhesives, grout & waterproofing", "Full bathroom solution", "Mixed — multiple categories", "Other"],
+      "required": true
+    },
+    {
+      "name": "sqm",
+      "label": "Total square metres required",
+      "type": "number",
+      "required": false,
+      "placeholder": "e.g. 250"
+    },
+    {
+      "name": "projectSize",
+      "label": "Project size",
+      "type": "select",
+      "options": ["Small — 1 to 2 units/rooms", "Medium — 3 to 10 units", "Large — 10+ units", "Commercial — retail/office", "Estate / multiple buildings"],
+      "required": false
+    },
+    {
+      "name": "preferredStore",
+      "label": "Preferred Tiletoria branch",
+      "type": "select",
+      "options": ["Cape Town — N1 City", "Cape Town — Ottery", "Cape Town — Montague Gardens", "Johannesburg — Randburg", "Johannesburg — Boksburg", "Durban — The Bridge", "Port Elizabeth", "Pretoria — Centurion"],
+      "required": true
+    },
+    {
+      "name": "message",
+      "label": "Project details",
+      "type": "textarea",
+      "required": true,
+      "placeholder": "Describe your project — number of units, rooms, tile specifications, delivery requirements, timeline, etc."
+    },
+    {
+      "name": "consent",
+      "label": "I consent to Tiletoria processing my personal information in accordance with the POPI Act. I confirm I am requesting this quote in a professional capacity.",
+      "type": "checkbox",
+      "required": true
+    }
+  ]
+}

@@ -81,6 +81,8 @@ async def chat(
         message_id=message_id,
         session_id=payload.session_id,
         processing_time_ms=result.get("processing_ms"),
+        type=result.get("type", "text"),
+        form_id=result.get("form_id"),
     )
 
 

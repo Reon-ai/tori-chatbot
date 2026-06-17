@@ -1,0 +1,75 @@
+{
+  "id": "product_enquiry",
+  "title": "Product Enquiry",
+  "description": "Tell us about the product you're looking for and we'll help you find the right match.",
+  "trigger_keywords": [
+    "product enquiry", "looking for", "do you have", "stock", "availability",
+    "where can i find", "searching for", "need a product", "product question",
+    "what products", "tile range", "collection", "series", "brand",
+    "do you sell", "can i get", "looking for tiles"
+  ],
+  "fields": [
+    {
+      "name": "customerName",
+      "label": "Your name",
+      "type": "text",
+      "required": true,
+      "placeholder": "e.g. John Smith"
+    },
+    {
+      "name": "phone",
+      "label": "Contact number",
+      "type": "tel",
+      "required": true,
+      "placeholder": "e.g. 082 123 4567"
+    },
+    {
+      "name": "email",
+      "label": "Email address",
+      "type": "email",
+      "required": false,
+      "placeholder": "e.g. john@email.com"
+    },
+    {
+      "name": "productCategory",
+      "label": "Product category",
+      "type": "select",
+      "options": ["Floor tiles", "Wall tiles", "Outdoor tiles", "Vinyl / LVT", "Laminate flooring", "Sanitaryware", "Adhesives & Grout", "Underfloor heating", "Tile trims & accessories", "Other"],
+      "required": true
+    },
+    {
+      "name": "productDetails",
+      "label": "Product details",
+      "type": "textarea",
+      "required": true,
+      "placeholder": "Describe what you're looking for — size, colour, finish, material, brand name if known..."
+    },
+    {
+      "name": "sqm",
+      "label": "Approximate quantity needed (m²)",
+      "type": "number",
+      "required": false,
+      "placeholder": "e.g. 20"
+    },
+    {
+      "name": "preferredStore",
+      "label": "Preferred store to view the product",
+      "type": "select",
+      "options": ["Any branch", "Cape Town — N1 City", "Cape Town — Ottery", "Cape Town — Montague Gardens", "Johannesburg — Randburg", "Johannesburg — Boksburg", "Durban — The Bridge", "Port Elizabeth", "Pretoria — Centurion"],
+      "required": false
+    },
+    {
+      "name": "message",
+      "label": "Additional information",
+      "type": "textarea",
+      "required": false,
+      "placeholder": "Any other details that might help us assist you..."
+    },
+    {
+      "name": "consent",
+      "label": "I consent to Tiletoria processing my personal information in accordance with the POPI Act.",
+      "type": "checkbox",
+      "required": true
+    }
+  ]
+}

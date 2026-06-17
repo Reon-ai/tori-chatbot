@@ -1,0 +1,74 @@
+{
+  "id": "sample_request",
+  "title": "Tile Sample Request",
+  "description": "Request up to 5 free tile samples. We'll contact you to confirm which samples you'd like.",
+  "trigger_keywords": [
+    "sample", "samples", "tile sample", "free sample", "get samples",
+    "request sample", "sample tiles", "can i get a sample", "send samples",
+    "try before", "see the tile", "colour sample", "sample chip"
+  ],
+  "fields": [
+    {
+      "name": "customerName",
+      "label": "Your full name",
+      "type": "text",
+      "required": true,
+      "placeholder": "e.g. John Smith"
+    },
+    {
+      "name": "phone",
+      "label": "Contact number",
+      "type": "tel",
+      "required": true,
+      "placeholder": "e.g. 082 123 4567"
+    },
+    {
+      "name": "email",
+      "label": "Email address",
+      "type": "email",
+      "required": true,
+      "placeholder": "e.g. john@email.com"
+    },
+    {
+      "name": "area",
+      "label": "Your area or suburb",
+      "type": "text",
+      "required": true,
+      "placeholder": "e.g. Fourways, Johannesburg"
+    },
+    {
+      "name": "sampleDetails",
+      "label": "Which tiles are you interested in sampling?",
+      "type": "textarea",
+      "required": true,
+      "placeholder": "Tell us the product name, range, colour, or describe what you're looking for. You can request up to 5 different samples."
+    },
+    {
+      "name": "projectType",
+      "label": "What is this project for?",
+      "type": "select",
+      "options": ["Residential — bathroom", "Residential — kitchen", "Residential — living area", "Residential — outdoor", "Commercial project", "Rental property", "Other"],
+      "required": false
+    },
+    {
+      "name": "preferredStore",
+      "label": "Preferred store to collect from",
+      "type": "select",
+      "options": ["Any branch — deliver to me", "Cape Town — N1 City", "Cape Town — Ottery", "Cape Town — Montague Gardens", "Johannesburg — Randburg", "Johannesburg — Boksburg", "Durban — The Bridge", "Port Elizabeth", "Pretoria — Centurion"],
+      "required": true
+    },
+    {
+      "name": "deliveryAddress",
+      "label": "Delivery address (if not collecting)",
+      "type": "textarea",
+      "required": false,
+      "placeholder": "Full address where samples should be delivered (if applicable)"
+    },
+    {
+      "name": "consent",
+      "label": "I consent to Tiletoria processing my personal information in accordance with the POPI Act.",
+      "type": "checkbox",
+      "required": true
+    }
+  ]
+}

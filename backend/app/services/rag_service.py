@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import asyncio
 import time
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 from openai import AsyncOpenAI, APIError, RateLimitError
 
@@ -22,15 +22,17 @@ from app.utils.logger import logger
 from app.utils.config import get_settings
 from app.services.vector_store import get_vector_store, SearchResult
 from app.services.database import get_db
+from app.services.intent_detector import get_intent_detector
 
 
 class RAGService:
     """Retrieval-Augmented Generation pipeline."""
 
     def __init__(self) -> None:
-        self.settings     = get_settings()
-        self.vector_store = get_vector_store()
-        self.db           = get_db()
+        self.settings       = get_settings()
+        self.vector_store   = get_vector_store()
+        self.db             = get_db()
+        self.intent_detector = get_intent_detector()
         self._openai_client: Optional[AsyncOpenAI] = None
 
     @property
@@ -54,36 +56,54 @@ class RAGService:
     ) -> Dict[str, Any]:
         """
         Full RAG pipeline execution.
+        Checks for form-triggering intents FIRST, then falls back to RAG.
         Returns dict with 'response', 'processing_ms', 'retrieved_chunks'.
+        May include 'type' and 'form_id' when a form intent is detected.
         """
         start_ms = int(time.time() * 1000)
 
         try:
-            # 1. Preprocess query
+            # ── STEP 0: Intent Detection ─────────────────────────
+            intent_result = self.intent_detector.detect(user_message)
+            if intent_result:
+                form_id = intent_result["form_id"]
+                form_message = self.intent_detector.get_form_message(form_id)
+                elapsed = int(time.time() * 1000) - start_ms
+
+                logger.info(
+                    f"FORM_TRIGGER | session={session_id[:8]} | "
+                    f"intent={intent_result['intent']} | "
+                    f"form={form_id} | conf={intent_result['confidence']} | "
+                    f"{elapsed}ms"
+                )
+
+                return {
+                    "response":         form_message,
+                    "type":             "form",
+                    "form_id":          form_id,
+                    "processing_ms":    elapsed,
+                    "retrieved_chunks": [],
+                }
+
+            # ── STEPS 1–7: Standard RAG Pipeline ─────────────────
             clean_query = self._preprocess_query(user_message)
 
-            # 2. Embed query
             query_embedding = await self._embed_query(clean_query)
 
-            # 3. Retrieve context
             results = await self.vector_store.search(
                 query_embedding=query_embedding,
                 top_k=self.settings.top_k,
             )
 
-            # 4. Filter by similarity threshold & re-rank
             filtered = self._rerank(results, self.settings.similarity_threshold)
 
-            # 5. Build context string
             context = self._build_context(filtered)
 
-            # 6. Get conversation history
             history = await self.db.get_session_history(
                 session_id, limit=self.settings.memory_turns
             )
             history_text = self._format_history(history)
 
-            # 7. Call LLM
             response_text = await self._call_llm(
                 user_query=clean_query,
                 context=context,
@@ -101,18 +121,19 @@ class RAGService:
 
             return {
                 "response":         response_text,
+                "type":             "text",
                 "processing_ms":    elapsed,
                 "retrieved_chunks": chunk_ids,
             }
 
         except ValueError as e:
-            # Config issues (missing API key, etc.)
             logger.error(f"RAG config error: {e}")
             return {
                 "response": (
                     "I'm sorry, the assistant isn't fully configured yet. "
                     "Please contact support if this persists."
                 ),
+                "type": "text",
                 "processing_ms": int(time.time() * 1000) - start_ms,
                 "retrieved_chunks": [],
             }
@@ -123,6 +144,7 @@ class RAGService:
                     "I apologize, I'm having trouble processing your request right now. "
                     "Please try again in a moment, or contact our support team for immediate help."
                 ),
+                "type": "text",
                 "processing_ms": int(time.time() * 1000) - start_ms,
                 "retrieved_chunks": [],
             }
@@ -174,17 +196,14 @@ class RAGService:
         Filter by similarity threshold and apply simple Maximal Marginal Relevance
         to reduce redundancy between top results.
         """
-        # Filter by threshold
         filtered = [r for r in results if r.score >= threshold]
 
         if not filtered:
-            # Graceful degradation: return top-1 even if below threshold
             if results:
                 logger.info("No results above threshold; using best available match")
                 return [results[0]]
             return []
 
-        # MMR: greedily pick diverse results
         if len(filtered) <= 2:
             return filtered
 
@@ -192,12 +211,10 @@ class RAGService:
         remaining  = filtered[1:]
 
         while remaining and len(selected) < self.settings.top_k:
-            # Score = relevance (score) - max similarity to already selected
             best     = None
             best_val = -1
 
             for cand in remaining:
-                # Rough text overlap as a diversity metric
                 max_overlap = max(
                     self._text_overlap(cand.text, sel.text) for sel in selected
                 )
@@ -260,14 +277,12 @@ class RAGService:
         Build the chat prompt and call OpenAI ChatCompletion API.
         Includes retry logic for transient errors.
         """
-        # Retrieve current config (may have been updated via admin panel)
         model       = await self.db.get_config("model",       self.settings.openai_chat_model)
         temperature = await self.db.get_config("temperature", self.settings.openai_temperature)
         max_tokens  = await self.db.get_config("max_tokens",  self.settings.openai_max_tokens)
         sys_prompt  = await self.db.get_config("system_prompt", self.settings.system_prompt)
         biz_name    = await self.db.get_config("business_name", self.settings.business_name)
 
-        # Fill in template variables
         system_content = sys_prompt.format(
             business_name=biz_name,
             retrieved_context=context,

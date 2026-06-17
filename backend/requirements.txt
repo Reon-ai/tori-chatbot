@@ -35,6 +35,9 @@ aiofiles==23.2.1             # async file I/O
 # ── Database ──────────────────────────────────────────────────────
 aiosqlite==0.20.0            # async SQLite driver
 
+# ── Email ─────────────────────────────────────────────────────────
+aiosmtplib==3.0.2              # async SMTP for form notifications
+
 # ── Utilities ─────────────────────────────────────────────────────
 python-jose[cryptography]==3.3.0   # JWT (optional auth upgrade)
 passlib[bcrypt]==1.7.4             # password hashing

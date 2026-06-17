@@ -20,7 +20,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from app.routers   import chat, admin, analytics
+from app.routers   import chat, admin, analytics, forms
 from app.services.database          import get_db
 from app.services.vector_store       import get_vector_store
 from app.services.document_processor import get_processor
@@ -62,7 +62,6 @@ async def lifespan(app: FastAPI):
         logger.error(f"✗ Vector store init failed: {e}")
         logger.warning("  → System will run without RAG (responses will be generic)")
 
-    # ── Start folder watcher in background ───────────────────────
     # ── Auto-ingest documents folder if ChromaDB is empty ────────
     if settings.environment != "test":
         processor = get_processor()
@@ -104,7 +103,7 @@ async def lifespan(app: FastAPI):
     # ── Cleanup task ─────────────────────────────────────────────
     async def periodic_cleanup():
         while True:
-            await asyncio.sleep(86400)  # Run daily
+            await asyncio.sleep(86400)
             await db.cleanup_old_conversations(settings.conversation_retention_days)
 
     if settings.environment != "test":
@@ -112,7 +111,7 @@ async def lifespan(app: FastAPI):
 
     logger.info("✓ Server ready — Listening for requests")
 
-    yield  # ← Application runs here
+    yield
 
     # ── Shutdown ─────────────────────────────────────────────────
     logger.info("Shutting down…")
@@ -139,10 +138,6 @@ def create_app() -> FastAPI:
     )
 
     # ── Middleware ────────────────────────────────────────────────
-    # IMPORTANT: Do NOT use allow_headers=["*"] with allow_credentials=True —
-    # that triggers a Starlette bug where "*" is sent literally in the
-    # preflight response, which blocks the Authorization header.
-    # Fix: list every allowed header explicitly.
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.origins_list,
@@ -163,6 +158,7 @@ def create_app() -> FastAPI:
     app.include_router(chat.router)
     app.include_router(admin.router)
     app.include_router(analytics.router)
+    app.include_router(forms.router)
 
     # ── Health endpoints ──────────────────────────────────────────
     @app.get("/health", response_model=HealthResponse, tags=["health"])
@@ -181,7 +177,6 @@ def create_app() -> FastAPI:
         sqlite_ok   = await db.health_check()
         vectordb_ok = await vs.health_check() if vs.is_ready else False
 
-        # Check OpenAI quickly (non-blocking)
         openai_ok = False
         if settings.openai_api_key:
             from app.services.rag_service import get_rag_service
@@ -236,4 +231,3 @@ if __name__ == "__main__":
         reload=settings.environment == "development",
         log_level=settings.log_level.lower(),
     )
-

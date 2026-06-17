@@ -49,9 +49,9 @@ class Database:
             session_id       TEXT NOT NULL,
             user_message     TEXT NOT NULL,
             bot_response     TEXT NOT NULL,
-            retrieved_chunks TEXT,          -- JSON, internal only
+            retrieved_chunks TEXT,
             processing_ms    INTEGER,
-            rating           INTEGER,       -- -1, 0, 1
+            rating           INTEGER,
             timestamp        DATETIME DEFAULT CURRENT_TIMESTAMP
         );
 
@@ -79,9 +79,23 @@ class Database:
             id           TEXT PRIMARY KEY,
             event_type   TEXT NOT NULL,
             session_id   TEXT,
-            data         TEXT,   -- JSON
+            data         TEXT,
             created_at   DATETIME DEFAULT CURRENT_TIMESTAMP
         );
+
+        CREATE TABLE IF NOT EXISTS form_submissions (
+            id          TEXT PRIMARY KEY,
+            form_id     TEXT NOT NULL,
+            form_title  TEXT NOT NULL,
+            data        TEXT NOT NULL,
+            session_id  TEXT,
+            client_ip   TEXT,
+            submitted_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_form_sub_form_id ON form_submissions(form_id);
+        CREATE INDEX IF NOT EXISTS idx_form_sub_session  ON form_submissions(session_id);
+        CREATE INDEX IF NOT EXISTS idx_form_sub_date     ON form_submissions(submitted_at);
         """
         await self._conn.executescript(sql)
         await self._conn.commit()
@@ -137,7 +151,7 @@ class Database:
                 "timestamp":    row[4],
                 "rating":       row[5],
             }
-            for row in reversed(rows)  # chronological order
+            for row in reversed(rows)
         ]
 
     async def update_rating(self, message_id: str, rating: int) -> bool:
@@ -281,20 +295,17 @@ class Database:
     async def get_analytics(self, days: int = 30) -> Dict[str, Any]:
         cutoff = (datetime.utcnow() - timedelta(days=days)).isoformat()
 
-        # Total queries
         cursor = await self._conn.execute(
             "SELECT COUNT(*) FROM conversations WHERE timestamp >= ?", (cutoff,)
         )
         total = (await cursor.fetchone())[0]
 
-        # Avg response time
         cursor = await self._conn.execute(
             "SELECT AVG(processing_ms) FROM conversations WHERE timestamp >= ? AND processing_ms IS NOT NULL",
             (cutoff,),
         )
         avg_ms = (await cursor.fetchone())[0]
 
-        # Ratings
         cursor = await self._conn.execute(
             """
             SELECT
@@ -309,7 +320,6 @@ class Database:
         pos = pos or 0
         neg = neg or 0
 
-        # Daily counts
         cursor = await self._conn.execute(
             """
             SELECT date(timestamp) as day, COUNT(*),
@@ -334,7 +344,6 @@ class Database:
             for row in await cursor.fetchall()
         ]
 
-        # Top questions
         cursor = await self._conn.execute(
             """
             SELECT user_message, COUNT(*) as c
@@ -377,6 +386,67 @@ class Database:
             (key, json.dumps(value)),
         )
         await self._conn.commit()
+
+    # ── Form Submissions ───────────────────────────────────────
+    async def save_form_submission(self, submission: Dict[str, Any]) -> None:
+        """Save a form submission to the database."""
+        await self._conn.execute(
+            """
+            INSERT INTO form_submissions (id, form_id, form_title, data, session_id, client_ip, submitted_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                submission["id"],
+                submission["form_id"],
+                submission["form_title"],
+                json.dumps(submission["data"]),
+                submission.get("session_id"),
+                submission.get("client_ip"),
+                submission.get("submitted_at", datetime.utcnow().isoformat()),
+            ),
+        )
+        await self._conn.commit()
+
+    async def list_form_submissions(
+        self,
+        form_id: Optional[str] = None,
+        limit: int = 50,
+    ) -> List[Dict[str, Any]]:
+        """List form submissions, optionally filtered by form_id."""
+        if form_id:
+            cursor = await self._conn.execute(
+                """
+                SELECT id, form_id, form_title, data, session_id, client_ip, submitted_at
+                FROM form_submissions
+                WHERE form_id = ?
+                ORDER BY submitted_at DESC
+                LIMIT ?
+                """,
+                (form_id, limit),
+            )
+        else:
+            cursor = await self._conn.execute(
+                """
+                SELECT id, form_id, form_title, data, session_id, client_ip, submitted_at
+                FROM form_submissions
+                ORDER BY submitted_at DESC
+                LIMIT ?
+                """,
+                (limit,),
+            )
+        rows = await cursor.fetchall()
+        return [
+            {
+                "id": row[0],
+                "form_id": row[1],
+                "form_title": row[2],
+                "data": json.loads(row[3]) if row[3] else {},
+                "session_id": row[4],
+                "client_ip": row[5],
+                "submitted_at": row[6],
+            }
+            for row in rows
+        ]
 
     # ── Health ─────────────────────────────────────────────────
     async def health_check(self) -> bool:

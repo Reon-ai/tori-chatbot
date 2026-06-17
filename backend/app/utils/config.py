@@ -40,7 +40,7 @@ class Settings(BaseSettings):
     openai_max_tokens: int = 500
 
     # ── Vector DB ─────────────────────────────────────────────
-    vector_db_type: str = "chromadb"          # chromadb | pinecone | qdrant
+    vector_db_type: str = "chromadb"
     vector_db_path: str = "./data/vectordb"
     vector_db_collection: str = "rag_documents"
 
@@ -69,7 +69,7 @@ class Settings(BaseSettings):
     max_file_size_mb: int = 50
 
     # ── Admin ─────────────────────────────────────────────────
-    admin_password: str = "admin123"          # CHANGE THIS in production .env
+    admin_password: str = "admin123"
     admin_session_secret: str = "change-me-in-production-use-random-32-chars"
 
     # ── Rate limiting ─────────────────────────────────────────
@@ -106,6 +106,18 @@ Guidelines:
 - Always end complex answers asking if user needs more help
 - Do NOT mention source documents, citations, or where information came from
 - Present all information as if you naturally know it"""
+
+    # ── Email / Notifications ─────────────────────────────────
+    notification_email: Optional[str] = None
+    smtp_host: Optional[str] = None
+    smtp_port: int = 587
+    smtp_user: Optional[str] = None
+    smtp_password: Optional[str] = None
+    smtp_from: Optional[str] = None
+
+    # ── Form Intent Detection ─────────────────────────────────
+    intent_confidence_threshold: float = 0.45
+    form_short_circuit: bool = True
 
     @field_validator("openai_api_key")
     @classmethod

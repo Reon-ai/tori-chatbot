@@ -31,9 +31,9 @@ class ChatResponse(BaseModel):
     response: str
     message_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     session_id: str
-    # Note: sources are intentionally omitted from the public response
-    # They are stored internally in retrieved_chunks for admin analytics only
     processing_time_ms: Optional[int] = None
+    type: str = "text"
+    form_id: Optional[str] = None
 
 
 class RatingRequest(BaseModel):
@@ -54,6 +54,65 @@ class ChatHistoryResponse(BaseModel):
     session_id: str
     messages: List[ChatHistoryItem]
     total: int
+
+
+# ══════════════════════════════════════════════════════════════════
+# FORMS
+# ══════════════════════════════════════════════════════════════════
+
+class FormField(BaseModel):
+    """A single field in a form definition."""
+    name: str
+    label: str
+    type: str
+    required: bool = False
+    placeholder: Optional[str] = None
+    options: Optional[List[str]] = None
+
+
+class FormDefinition(BaseModel):
+    """A complete form definition."""
+    id: str
+    title: str
+    description: str
+    fields: List[FormField]
+
+
+class FormDefinitionSummary(BaseModel):
+    """Summary of a form (for listing)."""
+    id: str
+    title: str
+    description: str
+
+
+class FormSubmitRequest(BaseModel):
+    """Request to submit a completed form."""
+    form_id: str = Field(..., min_length=1, description="The form ID being submitted")
+    data: Dict[str, Any] = Field(..., description="The form field values")
+    session_id: Optional[str] = Field(None, description="Chat session ID if available")
+
+    @field_validator("form_id")
+    @classmethod
+    def validate_form_id(cls, v: str) -> str:
+        return v.strip()
+
+
+class FormSubmitResponse(BaseModel):
+    """Response after form submission."""
+    success: bool
+    submission_id: Optional[str] = None
+    message: str = ""
+    errors: List[str] = Field(default_factory=list)
+
+
+class FormSubmissionRecord(BaseModel):
+    """A stored form submission record."""
+    id: str
+    form_id: str
+    form_title: str
+    data: Dict[str, Any]
+    session_id: Optional[str]
+    submitted_at: str
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -117,7 +176,7 @@ class TopQuestion(BaseModel):
 class AnalyticsResponse(BaseModel):
     total_queries: int
     avg_response_time_ms: Optional[float]
-    satisfaction_rate: Optional[float]   # 0.0–1.0
+    satisfaction_rate: Optional[float]
     error_rate: float
     daily_stats: List[DailyStats]
     top_questions: List[TopQuestion]

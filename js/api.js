@@ -93,6 +93,13 @@ const API = (() => {
     return POST('/api/chat/rating', { message_id: messageId, rating });
   }
 
+  // ── Forms API ─────────────────────────────────────────────────
+  async function getForm(formId)      { return GET(`/api/forms/${formId}`); }
+  async function listForms()          { return GET('/api/forms'); }
+  async function submitForm(formId, data, sessionId) {
+    return POST('/api/forms/submit', { form_id: formId, data, session_id: sessionId });
+  }
+
   // ── Admin – Documents ─────────────────────────────────────────
   async function getDocuments()           { return GET('/api/admin/documents'); }
   async function deleteDocument(docId)    { return DELETE(`/api/admin/documents/${docId}`); }
@@ -122,75 +129,72 @@ const API = (() => {
     "I don't have specific information about that right now. I'd recommend reaching out to our support team who can give you the most up-to-date details. Would you like help with something else I can assist with?",
   ];
 
+  // Demo intent detection (mirrors backend logic)
+  function detectDemoIntent(message) {
+    const lower = message.toLowerCase();
+    const intents = [
+      {
+        formId: 'tile_quote',
+        keywords: ['quote', 'quotation', 'price', 'pricing', 'how much', 'cost', 'estimate', 'get a quote', 'need a quote', 'quote for tiles', 'tile prices', 'what does it cost'],
+      },
+      {
+        formId: 'contact_me',
+        keywords: ['contact me', 'call me', 'phone me', 'get in touch', 'speak to someone', 'talk to a person', 'call back', 'speak to sales', 'speak to consultant', 'human', 'representative'],
+      },
+      {
+        formId: 'store_assistance',
+        keywords: ['visit store', 'come to store', 'book appointment', 'in-store', 'showroom', 'see products', 'look at tiles', 'visit branch', 'booking', 'appointment'],
+      },
+      {
+        formId: 'product_enquiry',
+        keywords: ['product enquiry', 'looking for', 'do you have', 'stock', 'availability', 'where can i find', 'do you sell'],
+      },
+      {
+        formId: 'sample_request',
+        keywords: ['sample', 'samples', 'tile sample', 'free sample', 'get samples', 'request sample'],
+      },
+      {
+        formId: 'contractor_quote',
+        keywords: ['contractor', 'trade quote', 'trade price', 'bulk order', 'builder', 'developer', 'interior designer', 'architect'],
+      },
+    ];
+
+    for (const intent of intents) {
+      for (const kw of intent.keywords) {
+        if (lower.includes(kw.toLowerCase())) {
+          return intent.formId;
+        }
+      }
+    }
+    return null;
+  }
+
   function getDemoResponse(message) {
     const lower = message.toLowerCase();
+
+    // Check for form-triggering intents FIRST
+    const formId = detectDemoIntent(message);
+    if (formId) {
+      const formMessages = {
+        tile_quote: "I'd be happy to help you with a quote! Please complete the form below and one of our team members will get back to you with a tailored estimate.",
+        contact_me: "No problem — we'll have someone from our team contact you. Please fill in your details below and we'll be in touch shortly.",
+        store_assistance: "Great idea — visiting a showroom is the best way to see our ranges. Please let us know your preferred branch and we'll arrange assistance for you.",
+        product_enquiry: "Let me help you find the right product. Please provide a few details below and our product specialist will assist you.",
+        sample_request: "We'd be happy to send you samples! Please complete the request below — you can request up to 5 different tile samples.",
+        contractor_quote: "Thank you for your interest in our trade services. Please complete the contractor quote form below and our trade team will assist you with competitive pricing.",
+      };
+      return {
+        response: formMessages[formId] || 'Please complete the form below.',
+        type: 'form',
+        form_id: formId,
+        message_id: APP_CONFIG.generateSessionId(),
+      };
+    }
+
     if (lower.includes('ship') || lower.includes('deliver')) return DEMO_RESPONSES[1];
     if (lower.includes('return') || lower.includes('refund') || lower.includes('exchange')) return DEMO_RESPONSES[2];
     if (lower.includes('track') || lower.includes('order status')) return DEMO_RESPONSES[3];
     if (lower.includes('sale') || lower.includes('deal') || lower.includes('discount') || lower.includes('product') || lower.includes('offer')) return DEMO_RESPONSES[4];
     if (lower.includes('contact') || lower.includes('support') || lower.includes('help') || lower.includes('phone')) return DEMO_RESPONSES[5];
     if (lower.includes('bulk') || lower.includes('wholesale') || lower.includes('business')) return DEMO_RESPONSES[6];
-    if (lower.includes('what') && lower.includes('offer')) return DEMO_RESPONSES[0];
-    // random for everything else
-    return DEMO_RESPONSES[Math.floor(Math.random() * DEMO_RESPONSES.length)];
-  }
-
-  async function demoSendMessage(message) {
-    await new Promise(r => setTimeout(r, 900 + Math.random() * 1200));
-    const response = getDemoResponse(message);
-
-    // Store in local demo conversations
-    const convs = APP_CONFIG.get(APP_CONFIG.KEYS.CONVERSATIONS, []);
-    convs.push({
-      id: APP_CONFIG.generateSessionId(),
-      session_id: APP_CONFIG.getOrCreateSession(),
-      user_message: message,
-      bot_response: response,
-      timestamp: new Date().toISOString(),
-      rating: null,
-    });
-    // Keep last 200
-    if (convs.length > 200) convs.splice(0, convs.length - 200);
-    APP_CONFIG.set(APP_CONFIG.KEYS.CONVERSATIONS, convs);
-
-    // Update demo analytics
-    const an = APP_CONFIG.get(APP_CONFIG.KEYS.ANALYTICS, { queries: 0, totalTime: 0 });
-    an.queries = (an.queries || 0) + 1;
-    an.totalTime = (an.totalTime || 0) + (900 + Math.random() * 1200);
-    APP_CONFIG.set(APP_CONFIG.KEYS.ANALYTICS, an);
-
-    return { response, message_id: APP_CONFIG.generateSessionId(), sources: [] };
-  }
-
-  // ── Unified chat (auto demo fallback) ─────────────────────────
-  async function chat(message, sessionId, signal) {
-    if (APP_CONFIG.isDemoMode()) return demoSendMessage(message);
-    return sendMessage(sessionId, message, signal);
-  }
-
-  return {
-    GET, POST, PUT, PATCH, DELETE,
-    uploadFile,
-    testConnection,
-    // Chat
-    chat,
-    sendMessage,
-    getChatHistory,
-    submitRating,
-    // Documents
-    getDocuments,
-    deleteDocument,
-    reindexDocuments,
-    // Analytics
-    getAnalytics,
-    // Conversations
-    getConversations,
-    // Config
-    saveConfig,
-    getConfig,
-    // Demo
-    demoSendMessage,
-  };
-})();
-
-window.API = API;
+    if (lower.includes('what

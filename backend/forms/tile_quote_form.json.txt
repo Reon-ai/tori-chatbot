@@ -1,0 +1,95 @@
+{
+  "id": "tile_quote",
+  "title": "Tile Quote Request",
+  "description": "Please complete the details below so we can prepare an accurate quote for your tiling project.",
+  "trigger_keywords": [
+    "quote", "quotation", "price", "pricing", "how much", "cost",
+    "estimate", "get a quote", "need a quote", "quote for tiles",
+    "tile prices", "what does it cost", "how much are tiles"
+  ],
+  "fields": [
+    {
+      "name": "customerName",
+      "label": "Your full name",
+      "type": "text",
+      "required": true,
+      "placeholder": "e.g. John Smith"
+    },
+    {
+      "name": "phone",
+      "label": "Contact number",
+      "type": "tel",
+      "required": true,
+      "placeholder": "e.g. 082 123 4567"
+    },
+    {
+      "name": "email",
+      "label": "Email address",
+      "type": "email",
+      "required": false,
+      "placeholder": "e.g. john@email.com"
+    },
+    {
+      "name": "area",
+      "label": "Which area or suburb are you in?",
+      "type": "text",
+      "required": true,
+      "placeholder": "e.g. Durbanville, Cape Town"
+    },
+    {
+      "name": "productType",
+      "label": "What are you looking for?",
+      "type": "select",
+      "options": ["Tiles", "Vinyl Flooring", "Laminate Flooring", "Sanitaryware", "Adhesives & Grout", "Not sure — need advice"],
+      "required": true
+    },
+    {
+      "name": "roomType",
+      "label": "Which room or area is this for?",
+      "type": "select",
+      "options": ["Bathroom", "Kitchen", "Lounge / Living room", "Bedroom", "Outdoor / Patio", "Commercial space", "Multiple areas", "Other"],
+      "required": true
+    },
+    {
+      "name": "sqm",
+      "label": "Approximate square metres needed",
+      "type": "number",
+      "required": false,
+      "placeholder": "e.g. 25"
+    },
+    {
+      "name": "preferredStore",
+      "label": "Preferred Tiletoria branch",
+      "type": "select",
+      "options": ["Any branch", "Cape Town — N1 City", "Cape Town — Ottery", "Cape Town — Montague Gardens", "Johannesburg — Randburg", "Johannesburg — Boksburg", "Durban — The Bridge", "Port Elizabeth", "Pretoria — Centurion"],
+      "required": false
+    },
+    {
+      "name": "budgetRange",
+      "label": "Approximate budget range (optional)",
+      "type": "select",
+      "options": ["Under R5,000", "R5,000 – R15,000", "R15,000 – R50,000", "R50,000+", "Prefer not to say"],
+      "required": false
+    },
+    {
+      "name": "timeframe",
+      "label": "When do you need this done?",
+      "type": "select",
+      "options": ["ASAP", "Within 2 weeks", "Within 1 month", "1–3 months", "Just budgeting for now"],
+      "required": false
+    },
+    {
+      "name": "message",
+      "label": "Tell us more about your project",
+      "type": "textarea",
+      "required": true,
+      "placeholder": "Describe what you need — tile type, colour preference, surface preparation needed, etc."
+    },
+    {
+      "name": "consent",
+      "label": "I consent to Tiletoria processing my personal information in accordance with the POPI Act. I understand my information will be used solely to respond to this quote request.",
+      "type": "checkbox",
+      "required": true
+    }
+  ]
+}
