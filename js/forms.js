@@ -39,36 +39,29 @@ const FORMS = (() => {
 
   function getFallbackForm(formId) {
     const fallbacks = {
-      tile_quote: {
-        id: 'tile_quote',
-        title: 'Tile Quote Request',
-        description: 'Please complete the details below so we can prepare an accurate quote.',
+      get_quote: {
+        id: 'get_quote',
+        title: 'Get a Quote',
+        description: "Tell us what you need and we'll get back to you with a quote.",
         fields: [
-          { name: 'customerName', label: 'Your full name', type: 'text', required: true, placeholder: 'e.g. John Smith' },
-          { name: 'phone', label: 'Contact number', type: 'tel', required: true, placeholder: 'e.g. 082 123 4567' },
-          { name: 'email', label: 'Email address', type: 'email', required: false, placeholder: 'e.g. john@email.com' },
-          { name: 'area', label: 'Which area or suburb are you in?', type: 'text', required: true, placeholder: 'e.g. Durbanville, Cape Town' },
-          { name: 'productType', label: 'What are you looking for?', type: 'select', options: ['Tiles', 'Vinyl Flooring', 'Laminate Flooring', 'Sanitaryware', 'Adhesives & Grout', 'Not sure — need advice'], required: true },
-          { name: 'roomType', label: 'Which room or area is this for?', type: 'select', options: ['Bathroom', 'Kitchen', 'Lounge / Living room', 'Bedroom', 'Outdoor / Patio', 'Commercial space', 'Multiple areas', 'Other'], required: true },
-          { name: 'sqm', label: 'Approximate square metres needed', type: 'number', required: false, placeholder: 'e.g. 25' },
-          { name: 'preferredStore', label: 'Preferred Tiletoria branch', type: 'select', options: ['Any branch', 'Cape Town — N1 City', 'Cape Town — Ottery', 'Cape Town — Montague Gardens', 'Johannesburg — Randburg', 'Johannesburg — Boksburg', 'Durban — The Bridge', 'Port Elizabeth', 'Pretoria — Centurion'], required: false },
-          { name: 'message', label: 'Tell us more about your project', type: 'textarea', required: true, placeholder: 'Describe what you need — tile type, colour preference, surface preparation needed, etc.' },
-          { name: 'consent', label: 'I consent to Tiletoria processing my personal information in accordance with the POPI Act. I understand my information will be used solely to respond to this quote request.', type: 'checkbox', required: true },
+          { name: 'name', label: 'Your name', type: 'text', required: true, placeholder: 'e.g. John Smith' },
+          { name: 'phone', label: 'Phone number', type: 'tel', required: true, placeholder: 'e.g. 082 123 4567' },
+          { name: 'email', label: 'Email (optional)', type: 'email', required: false, placeholder: 'e.g. john@email.com' },
+          { name: 'details', label: 'What do you need?', type: 'textarea', required: true, placeholder: 'Tell us briefly what you\'re looking for.' },
+          { name: 'consent', label: 'I consent to Tiletoria processing my details in accordance with the POPI Act.', type: 'checkbox', required: true },
         ]
       },
-      contact_me: {
-        id: 'contact_me',
-        title: 'Contact Request',
-        description: 'Leave your details and a Tiletoria consultant will contact you shortly.',
+      get_in_touch: {
+        id: 'get_in_touch',
+        title: 'Get in Touch',
+        description: "Leave your details and a Tiletoria consultant will contact you.",
         fields: [
-          { name: 'customerName', label: 'Your full name', type: 'text', required: true, placeholder: 'e.g. John Smith' },
-          { name: 'phone', label: 'Contact number', type: 'tel', required: true, placeholder: 'e.g. 082 123 4567' },
-          { name: 'email', label: 'Email address', type: 'email', required: false, placeholder: 'e.g. john@email.com' },
-          { name: 'area', label: 'Your area or suburb', type: 'text', required: true, placeholder: 'e.g. Randburg, Johannesburg' },
-          { name: 'preferredTime', label: 'Best time to contact you?', type: 'select', options: ['Morning (8am – 12pm)', 'Afternoon (12pm – 5pm)', 'Anytime', 'Specific time — I\'ll explain below'], required: true },
-          { name: 'enquiryType', label: 'What is this regarding?', type: 'select', options: ['Product enquiry', 'Quote request', 'Order status', 'Complaint / Issue', 'General question', 'Business account'], required: true },
-          { name: 'message', label: 'How can we help you?', type: 'textarea', required: true, placeholder: 'Briefly describe what you need assistance with...' },
-          { name: 'consent', label: 'I consent to Tiletoria processing my personal information in accordance with the POPI Act.', type: 'checkbox', required: true },
+          { name: 'name', label: 'Your name', type: 'text', required: true, placeholder: 'e.g. John Smith' },
+          { name: 'phone', label: 'Phone number', type: 'tel', required: true, placeholder: 'e.g. 082 123 4567' },
+          { name: 'email', label: 'Email (optional)', type: 'email', required: false, placeholder: 'e.g. john@email.com' },
+          { name: 'store', label: 'Preferred store (optional)', type: 'select', options: ['No preference', 'Cape Town — N1 City', 'Cape Town — Ottery', 'Cape Town — Montague Gardens', 'Johannesburg — Randburg', 'Johannesburg — Boksburg', 'Durban — The Bridge', 'Port Elizabeth', 'Pretoria — Centurion'], required: false },
+          { name: 'details', label: 'How can we help?', type: 'textarea', required: true, placeholder: 'Briefly tell us what you need.' },
+          { name: 'consent', label: 'I consent to Tiletoria processing my details in accordance with the POPI Act.', type: 'checkbox', required: true },
         ]
       },
     };

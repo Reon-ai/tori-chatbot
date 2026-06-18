@@ -1,0 +1,66 @@
+{
+  "id": "get_in_touch",
+  "title": "Get in Touch",
+  "description": "Leave your details and a Tiletoria consultant will contact you.",
+  "trigger_keywords": [
+    "contact me", "call me", "call me back", "get in touch",
+    "speak to someone", "talk to a person", "speak to sales",
+    "human", "representative", "someone call me",
+    "visit showroom", "book appointment", "come to store",
+    "showroom visit", "want to visit", "book a consultation",
+    "pop in", "drop by"
+  ],
+  "fields": [
+    {
+      "name": "name",
+      "label": "Your name",
+      "type": "text",
+      "required": true,
+      "placeholder": "e.g. John Smith"
+    },
+    {
+      "name": "phone",
+      "label": "Phone number",
+      "type": "tel",
+      "required": true,
+      "placeholder": "e.g. 082 123 4567"
+    },
+    {
+      "name": "email",
+      "label": "Email (optional)",
+      "type": "email",
+      "required": false,
+      "placeholder": "e.g. john@email.com"
+    },
+    {
+      "name": "store",
+      "label": "Preferred store (optional)",
+      "type": "select",
+      "options": [
+        "No preference",
+        "Cape Town — N1 City",
+        "Cape Town — Ottery",
+        "Cape Town — Montague Gardens",
+        "Johannesburg — Randburg",
+        "Johannesburg — Boksburg",
+        "Durban — The Bridge",
+        "Port Elizabeth",
+        "Pretoria — Centurion"
+      ],
+      "required": false
+    },
+    {
+      "name": "details",
+      "label": "How can we help?",
+      "type": "textarea",
+      "required": true,
+      "placeholder": "Briefly tell us what you need."
+    },
+    {
+      "name": "consent",
+      "label": "I consent to Tiletoria processing my details in accordance with the POPI Act.",
+      "type": "checkbox",
+      "required": true
+    }
+  ]
+}
