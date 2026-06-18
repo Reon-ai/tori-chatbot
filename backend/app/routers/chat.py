@@ -9,7 +9,6 @@ POST /api/chat/rating   — submit thumbs-up/down feedback
 
 from __future__ import annotations
 
-import uuid
 from datetime import datetime
 from typing import Any, Dict, Optional
 

@@ -18,7 +18,6 @@ from typing import Any, Dict
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.staticfiles import StaticFiles
 
 from app.routers   import chat, admin, analytics, forms
 from app.services.database          import get_db

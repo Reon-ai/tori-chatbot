@@ -11,6 +11,7 @@ import asyncio
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+import re
 
 from app.utils.logger import logger
 from app.utils.config import get_settings
@@ -88,7 +89,6 @@ class FormService:
 
             field_type = field.get("type", "text")
             if field_type == "email" and value:
-                import re
                 if not re.match(r'^[\w\.-]+@[\w\.-]+\.\w+$', str(value)):
                     errors.append(f"{field['label']} must be a valid email address")
 

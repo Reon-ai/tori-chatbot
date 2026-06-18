@@ -151,7 +151,7 @@ class IntentDetector:
                             "matched_keyword": keyword,
                         }
 
-        threshold = 0.45
+        threshold = self.settings.intent_confidence_threshold
         if best_match and best_match["confidence"] >= threshold:
             logger.info(
                 f"Intent detected: {best_match['intent']} "

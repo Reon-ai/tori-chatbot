@@ -20,7 +20,6 @@ from app.models.schemas import (
 from app.services.form_service import get_form_service, FormService
 from app.services.database import get_db, Database
 from app.routers.admin import require_admin
-from app.utils.logger import logger
 
 router = APIRouter(prefix="/api/forms", tags=["forms"])
 
