@@ -1,0 +1,49 @@
+{
+  "id": "get_quote",
+  "title": "Get a Quote",
+  "description": "Tell us what you need and we'll get back to you with a quote.",
+  "trigger_keywords": [
+    "quote", "quotation", "get a quote", "need a quote",
+    "how much", "what does it cost", "price for", "pricing on",
+    "sample", "samples", "tile sample", "free sample",
+    "contractor", "trade price", "trade quote", "bulk order",
+    "need pricing", "pricing please", "send me a quote",
+    "want a quote", "looking for a quote"
+  ],
+  "fields": [
+    {
+      "name": "name",
+      "label": "Your name",
+      "type": "text",
+      "required": true,
+      "placeholder": "e.g. John Smith"
+    },
+    {
+      "name": "phone",
+      "label": "Phone number",
+      "type": "tel",
+      "required": true,
+      "placeholder": "e.g. 082 123 4567"
+    },
+    {
+      "name": "email",
+      "label": "Email (optional)",
+      "type": "email",
+      "required": false,
+      "placeholder": "e.g. john@email.com"
+    },
+    {
+      "name": "details",
+      "label": "What do you need?",
+      "type": "textarea",
+      "required": true,
+      "placeholder": "Tell us briefly what you're looking for."
+    },
+    {
+      "name": "consent",
+      "label": "I consent to Tiletoria processing my details in accordance with the POPI Act.",
+      "type": "checkbox",
+      "required": true
+    }
+  ]
+}

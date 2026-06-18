@@ -129,33 +129,16 @@ const API = (() => {
     "I don't have specific information about that right now. I'd recommend reaching out to our support team who can give you the most up-to-date details. Would you like help with something else I can assist with?",
   ];
 
-  // Demo intent detection (mirrors backend logic)
-  function detectDemoIntent(message) {
+    function detectDemoIntent(message) {
     const lower = message.toLowerCase();
     const intents = [
       {
-        formId: 'tile_quote',
-        keywords: ['quote', 'quotation', 'price', 'pricing', 'how much', 'cost', 'estimate', 'get a quote', 'need a quote', 'quote for tiles', 'tile prices', 'what does it cost'],
+        formId: 'get_quote',
+        keywords: ['quote', 'quotation', 'get a quote', 'need a quote', 'how much', 'what does it cost', 'price for', 'pricing on', 'sample', 'samples', 'tile sample', 'free sample', 'contractor', 'trade price', 'trade quote', 'bulk order', 'need pricing', 'send me a quote', 'want a quote'],
       },
       {
-        formId: 'contact_me',
-        keywords: ['contact me', 'call me', 'phone me', 'get in touch', 'speak to someone', 'talk to a person', 'call back', 'speak to sales', 'speak to consultant', 'human', 'representative'],
-      },
-      {
-        formId: 'store_assistance',
-        keywords: ['visit store', 'come to store', 'book appointment', 'in-store', 'showroom', 'see products', 'look at tiles', 'visit branch', 'booking', 'appointment'],
-      },
-      {
-        formId: 'product_enquiry',
-        keywords: ['product enquiry', 'looking for', 'do you have', 'stock', 'availability', 'where can i find', 'do you sell'],
-      },
-      {
-        formId: 'sample_request',
-        keywords: ['sample', 'samples', 'tile sample', 'free sample', 'get samples', 'request sample'],
-      },
-      {
-        formId: 'contractor_quote',
-        keywords: ['contractor', 'trade quote', 'trade price', 'bulk order', 'builder', 'developer', 'interior designer', 'architect'],
+        formId: 'get_in_touch',
+        keywords: ['contact me', 'call me', 'call me back', 'get in touch', 'speak to someone', 'talk to a person', 'speak to sales', 'human', 'representative', 'someone call me', 'visit showroom', 'book appointment', 'come to store', 'showroom visit', 'want to visit', 'book a consultation', 'pop in', 'drop by'],
       },
     ];
 
@@ -176,13 +159,9 @@ const API = (() => {
     const formId = detectDemoIntent(message);
     if (formId) {
       const formMessages = {
-        tile_quote: "I'd be happy to help you with a quote! Please complete the form below and one of our team members will get back to you with a tailored estimate.",
-        contact_me: "No problem — we'll have someone from our team contact you. Please fill in your details below and we'll be in touch shortly.",
-        store_assistance: "Great idea — visiting a showroom is the best way to see our ranges. Please let us know your preferred branch and we'll arrange assistance for you.",
-        product_enquiry: "Let me help you find the right product. Please provide a few details below and our product specialist will assist you.",
-        sample_request: "We'd be happy to send you samples! Please complete the request below — you can request up to 5 different tile samples.",
-        contractor_quote: "Thank you for your interest in our trade services. Please complete the contractor quote form below and our trade team will assist you with competitive pricing.",
-      };
+  get_quote: "I'd be happy to help with that! Please leave your details below and one of our team will get back to you with a quote.",
+  get_in_touch: "No problem — we'll have someone from our team contact you. Please leave your details below and we'll be in touch shortly.",
+};
       return {
         response: formMessages[formId] || 'Please complete the form below.',
         type: 'form',
