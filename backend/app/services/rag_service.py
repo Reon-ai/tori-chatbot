@@ -23,6 +23,7 @@ from app.utils.config import get_settings
 from app.services.vector_store import get_vector_store, SearchResult
 from app.services.database import get_db
 from app.services.intent_detector import get_intent_detector
+from app.services.memory_service import get_memory_service
 
 
 class RAGService:
@@ -33,6 +34,7 @@ class RAGService:
         self.vector_store   = get_vector_store()
         self.db             = get_db()
         self.intent_detector = get_intent_detector()
+        self.memory         = get_memory_service()
         self._openai_client: Optional[AsyncOpenAI] = None
 
     @property
@@ -47,6 +49,7 @@ class RAGService:
         return self._openai_client
 
     # ══════════════════════════════════════════════════════════════
+       # ══════════════════════════════════════════════════════════════
     # PUBLIC: generate_response
     # ══════════════════════════════════════════════════════════════
     async def generate_response(
@@ -55,84 +58,87 @@ class RAGService:
         user_message: str,
     ) -> Dict[str, Any]:
         """
-        Full RAG pipeline execution.
-        Checks for form-triggering intents FIRST, then falls back to RAG.
-        Returns dict with 'response', 'processing_ms', 'retrieved_chunks'.
-        May include 'type' and 'form_id' when a form intent is detected.
+        Full RAG + Memory pipeline.
+        1. Saves user message to memory
+        2. Checks for form-triggering intents
+        3. Builds memory context
+        4. Runs RAG retrieval
+        5. Calls LLM with RAG + memory
+        6. Saves assistant response to memory
         """
         start_ms = int(time.time() * 1000)
 
         try:
-            # ── STEP 0: Intent Detection ─────────────────────────
+            # ── Save user message to memory ────────────────────
+            await self.memory.save_message(session_id, "user", user_message)
+
+            # ── Check for form intent ──────────────────────────
             intent_result = self.intent_detector.detect(user_message)
             if intent_result:
                 form_id = intent_result["form_id"]
                 form_message = self.intent_detector.get_form_message(form_id)
                 elapsed = int(time.time() * 1000) - start_ms
 
+                await self.memory.save_message(session_id, "assistant", form_message)
+
                 logger.info(
                     f"FORM_TRIGGER | session={session_id[:8]} | "
-                    f"intent={intent_result['intent']} | "
-                    f"form={form_id} | conf={intent_result['confidence']} | "
-                    f"{elapsed}ms"
+                    f"intent={intent_result['intent']} | form={form_id}"
                 )
 
                 return {
-                    "response":         form_message,
-                    "type":             "form",
-                    "form_id":          form_id,
-                    "processing_ms":    elapsed,
+                    "response": form_message,
+                    "type": "form",
+                    "form_id": form_id,
+                    "processing_ms": elapsed,
                     "retrieved_chunks": [],
                 }
 
-            # ── STEPS 1–7: Standard RAG Pipeline ─────────────────
+            # ── Build memory context ───────────────────────────
+            memory_context = await self.memory.build_memory_context(session_id)
+
+            # ── Update summary every few messages ──────────────
+            await self.memory.maybe_update_memory(session_id, self.openai_client)
+
+            # ── RAG retrieval ──────────────────────────────────
             clean_query = self._preprocess_query(user_message)
-
             query_embedding = await self._embed_query(clean_query)
-
             results = await self.vector_store.search(
                 query_embedding=query_embedding,
                 top_k=self.settings.top_k,
             )
-
             filtered = self._rerank(results, self.settings.similarity_threshold)
-
             context = self._build_context(filtered)
 
-            history = await self.db.get_session_history(
-                session_id, limit=self.settings.memory_turns
-            )
-            history_text = self._format_history(history)
-
-            response_text = await self._call_llm(
+            # ── Call LLM with memory ───────────────────────────
+            response_text = await self._call_llm_with_memory(
                 user_query=clean_query,
                 context=context,
-                history=history_text,
+                memory_context=memory_context,
             )
+
+            # ── Save assistant response ────────────────────────
+            await self.memory.save_message(session_id, "assistant", response_text)
 
             elapsed = int(time.time() * 1000) - start_ms
             chunk_ids = [r.chunk_id for r in filtered]
 
             logger.info(
-                f"RAG | session={session_id[:8]} | "
-                f"query='{clean_query[:60]}' | "
-                f"chunks={len(filtered)} | {elapsed}ms"
+                f"RAG+MEM | session={session_id[:8]} | "
+                f"query='{clean_query[:60]}' | chunks={len(filtered)} | {elapsed}ms"
             )
 
             return {
-                "response":         response_text,
-                "type":             "text",
-                "processing_ms":    elapsed,
+                "response": response_text,
+                "type": "text",
+                "processing_ms": elapsed,
                 "retrieved_chunks": chunk_ids,
             }
 
         except ValueError as e:
             logger.error(f"RAG config error: {e}")
             return {
-                "response": (
-                    "I'm sorry, the assistant isn't fully configured yet. "
-                    "Please contact support if this persists."
-                ),
+                "response": "I'm sorry, the assistant isn't fully configured yet.",
                 "type": "text",
                 "processing_ms": int(time.time() * 1000) - start_ms,
                 "retrieved_chunks": [],
@@ -140,10 +146,7 @@ class RAGService:
         except Exception as e:
             logger.error(f"RAG pipeline error: {e}", exc_info=True)
             return {
-                "response": (
-                    "I apologize, I'm having trouble processing your request right now. "
-                    "Please try again in a moment, or contact our support team for immediate help."
-                ),
+                "response": "I apologize, I'm having trouble right now. Please try again.",
                 "type": "text",
                 "processing_ms": int(time.time() * 1000) - start_ms,
                 "retrieved_chunks": [],

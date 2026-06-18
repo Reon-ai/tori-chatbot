@@ -98,8 +98,25 @@ async def lifespan(app: FastAPI):
         asyncio.create_task(processor.watch_folder())
         logger.info(f"✓ Document watcher started on '{settings.documents_dir}'")
 
+    # ── Memory cleanup task ────────────────────────────────────
+    from app.services.memory_service import get_memory_service
+    mem_service = get_memory_service()
 
-    # ── Cleanup task ─────────────────────────────────────────────
+    async def periodic_memory_cleanup():
+        while True:
+            await asyncio.sleep(86400)
+            try:
+                deleted = await mem_service.cleanup_expired_memory()
+                if deleted:
+                    logger.info(f"Memory cleanup: removed {deleted} expired records")
+            except Exception as e:
+                logger.error(f"Memory cleanup error: {e}")
+
+    if settings.environment != "test":
+        asyncio.create_task(periodic_memory_cleanup())
+        logger.info("✓ Daily memory cleanup scheduled")
+    
+# ── Cleanup task ─────────────────────────────────────────────
     async def periodic_cleanup():
         while True:
             await asyncio.sleep(86400)

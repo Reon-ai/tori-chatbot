@@ -96,7 +96,41 @@ class Database:
         CREATE INDEX IF NOT EXISTS idx_form_sub_form_id ON form_submissions(form_id);
         CREATE INDEX IF NOT EXISTS idx_form_sub_session  ON form_submissions(session_id);
         CREATE INDEX IF NOT EXISTS idx_form_sub_date     ON form_submissions(submitted_at);
-        """
+                -- ── Conversation Memory Tables ─────────────────────────
+
+        CREATE TABLE IF NOT EXISTS conversation_messages (
+            id          TEXT PRIMARY KEY,
+            session_id  TEXT NOT NULL,
+            role        TEXT NOT NULL,
+            message     TEXT NOT NULL,
+            created_at  DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_msgs_session ON conversation_messages(session_id, created_at);
+
+        CREATE TABLE IF NOT EXISTS conversation_summaries (
+            session_id  TEXT PRIMARY KEY,
+            summary     TEXT NOT NULL,
+            updated_at  DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS conversation_state (
+            session_id  TEXT PRIMARY KEY,
+            state_json  TEXT NOT NULL,
+            updated_at  DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS form_state (
+            session_id  TEXT NOT NULL,
+            form_type   TEXT NOT NULL,
+            form_json   TEXT NOT NULL,
+            status      TEXT DEFAULT 'in_progress',
+            updated_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (session_id, form_type)
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_form_state_session ON form_state(session_id);
+"""
         await self._conn.executescript(sql)
         await self._conn.commit()
 
@@ -448,7 +482,206 @@ class Database:
             for row in rows
         ]
 
-    # ── Health ─────────────────────────────────────────────────
+       # ── Conversation Messages (Memory Layer) ───────────────────
+    async def save_conversation_message(
+        self, msg_id: str, session_id: str, role: str, message: str
+    ) -> None:
+        await self._conn.execute(
+            """
+            INSERT INTO conversation_messages (id, session_id, role, message)
+            VALUES (?, ?, ?, ?)
+            """,
+            (msg_id, session_id, role, message),
+        )
+        await self._conn.commit()
+
+    async def get_conversation_messages(
+        self, session_id: str, limit: int = 12
+    ) -> List[Dict[str, Any]]:
+        cursor = await self._conn.execute(
+            """
+            SELECT id, session_id, role, message, created_at
+            FROM conversation_messages
+            WHERE session_id = ?
+            ORDER BY created_at DESC
+            LIMIT ?
+            """,
+            (session_id, limit),
+        )
+        rows = await cursor.fetchall()
+        return [
+            {
+                "id": row[0],
+                "session_id": row[1],
+                "role": row[2],
+                "message": row[3],
+                "created_at": row[4],
+            }
+            for row in reversed(rows)
+        ]
+
+    # ── Conversation Summaries ─────────────────────────────────
+    async def save_conversation_summary(
+        self, session_id: str, summary: str
+    ) -> None:
+        await self._conn.execute(
+            """
+            INSERT INTO conversation_summaries (session_id, summary, updated_at)
+            VALUES (?, ?, ?)
+            ON CONFLICT(session_id) DO UPDATE SET
+                summary = excluded.summary,
+                updated_at = excluded.updated_at
+            """,
+            (session_id, summary, datetime.utcnow().isoformat()),
+        )
+        await self._conn.commit()
+
+    async def get_conversation_summary(
+        self, session_id: str
+    ) -> Optional[Dict[str, Any]]:
+        cursor = await self._conn.execute(
+            "SELECT session_id, summary, updated_at FROM conversation_summaries WHERE session_id = ?",
+            (session_id,),
+        )
+        row = await cursor.fetchone()
+        if row:
+            return {"session_id": row[0], "summary": row[1], "updated_at": row[2]}
+        return None
+
+    # ── Conversation State (Project Memory) ────────────────────
+    async def save_conversation_state(
+        self, session_id: str, state: Dict[str, Any]
+    ) -> None:
+        await self._conn.execute(
+            """
+            INSERT INTO conversation_state (session_id, state_json, updated_at)
+            VALUES (?, ?, ?)
+            ON CONFLICT(session_id) DO UPDATE SET
+                state_json = excluded.state_json,
+                updated_at = excluded.updated_at
+            """,
+            (session_id, json.dumps(state), datetime.utcnow().isoformat()),
+        )
+        await self._conn.commit()
+
+    async def get_conversation_state(
+        self, session_id: str
+    ) -> Optional[Dict[str, Any]]:
+        cursor = await self._conn.execute(
+            "SELECT session_id, state_json, updated_at FROM conversation_state WHERE session_id = ?",
+            (session_id,),
+        )
+        row = await cursor.fetchone()
+        if row:
+            return {"session_id": row[0], "state_json": row[1], "updated_at": row[2]}
+        return None
+
+    # ── Form State ─────────────────────────────────────────────
+    async def save_form_state(
+        self, session_id: str, form_type: str, form_data: Dict[str, Any], status: str = "in_progress"
+    ) -> None:
+        await self._conn.execute(
+            """
+            INSERT INTO form_state (session_id, form_type, form_json, status, updated_at)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(session_id, form_type) DO UPDATE SET
+                form_json = excluded.form_json,
+                status = excluded.status,
+                updated_at = excluded.updated_at
+            """,
+            (
+                session_id,
+                form_type,
+                json.dumps(form_data),
+                status,
+                datetime.utcnow().isoformat(),
+            ),
+        )
+        await self._conn.commit()
+
+    async def get_form_state(
+        self, session_id: str, form_type: str
+    ) -> Optional[Dict[str, Any]]:
+        cursor = await self._conn.execute(
+            """
+            SELECT session_id, form_type, form_json, status, updated_at
+            FROM form_state
+            WHERE session_id = ? AND form_type = ?
+            """,
+            (session_id, form_type),
+        )
+        row = await cursor.fetchone()
+        if row:
+            return {
+                "session_id": row[0],
+                "form_type": row[1],
+                "form_json": row[2],
+                "status": row[3],
+                "updated_at": row[4],
+            }
+        return None
+
+    async def get_form_states(
+        self, session_id: str
+    ) -> List[Dict[str, Any]]:
+        cursor = await self._conn.execute(
+            """
+            SELECT session_id, form_type, form_json, status, updated_at
+            FROM form_state
+            WHERE session_id = ?
+            ORDER BY updated_at DESC
+            """,
+            (session_id,),
+        )
+        rows = await cursor.fetchall()
+        return [
+            {
+                "session_id": row[0],
+                "form_type": row[1],
+                "form_json": row[2],
+                "status": row[3],
+                "updated_at": row[4],
+            }
+            for row in rows
+        ]
+
+    # ── Memory Cleanup ─────────────────────────────────────────
+    async def delete_old_messages(self, cutoff: str) -> int:
+        cursor = await self._conn.execute(
+            "DELETE FROM conversation_messages WHERE created_at < ?",
+            (cutoff,),
+        )
+        await self._conn.commit()
+        return cursor.rowcount
+
+    async def delete_old_summaries(self, cutoff: str) -> int:
+        cursor = await self._conn.execute(
+            "DELETE FROM conversation_summaries WHERE updated_at < ?",
+            (cutoff,),
+        )
+        await self._conn.commit()
+        return cursor.rowcount
+
+    async def delete_old_states(self, cutoff: str) -> int:
+        cursor = await self._conn.execute(
+            "DELETE FROM conversation_state WHERE updated_at < ?",
+            (cutoff,),
+        )
+        await self._conn.commit()
+        return cursor.rowcount
+
+    async def delete_old_form_states(self, cutoff: str) -> int:
+        cursor = await self._conn.execute(
+            "DELETE FROM form_state WHERE updated_at < ?",
+            (cutoff,),
+        )
+        await self._conn.commit()
+        return cursor.rowcount
+
+
+
+
+ # ── Health ─────────────────────────────────────────────────
     async def health_check(self) -> bool:
         try:
             await self._conn.execute("SELECT 1")

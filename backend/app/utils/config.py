@@ -116,8 +116,17 @@ Guidelines:
     smtp_from: Optional[str] = None
 
     # ── Form Intent Detection ─────────────────────────────────
+    # Minimum confidence threshold (0.0–1.0) to trigger a form
     intent_confidence_threshold: float = 0.45
+    # If True, skip RAG and directly return form when intent is detected
     form_short_circuit: bool = True
+    # ── Session Memory ────────────────────────────────────────
+    # Regenerate summary every N new messages (higher = fewer LLM calls)
+    memory_summary_interval: int = 3
+    # How many recent messages to send to the AI prompt
+    memory_turns: int = 10
+    # Days to keep session memory before auto-cleanup
+    memory_retention_days: int = 30
 
     @field_validator("openai_api_key")
     @classmethod
