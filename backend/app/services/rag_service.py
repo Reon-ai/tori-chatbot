@@ -76,7 +76,8 @@ class RAGService:
             intent_result = self.intent_detector.detect(user_message)
             if intent_result:
                 form_id = intent_result["form_id"]
-                form_message = self.intent_detector.get_form_message(form_id)                # Build prefill data from memory
+                form_message = self.intent_detector.get_form_message(form_id)                # Force a memory refresh BEFORE building prefill
+                await self.memory.maybe_update_memory(session_id, self.openai_client)                # Build prefill data from memory
                 prefill = await self._build_form_prefill(session_id, form_id)
                 elapsed = int(time.time() * 1000) - start_ms
 
