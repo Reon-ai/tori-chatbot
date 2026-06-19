@@ -267,35 +267,34 @@ class RAGService:
 
         return "\n".join(lines)
 
+       # ══════════════════════════════════════════════════════════════
+    # STEP 8: LLM call with memory
     # ══════════════════════════════════════════════════════════════
-    # STEP 6: LLM call
-    # ══════════════════════════════════════════════════════════════
-    async def _call_llm(
+    async def _call_llm_with_memory(
         self,
         user_query: str,
         context: str,
-        history: str,
+        memory_context: str,
     ) -> str:
         """
-        Build the chat prompt and call OpenAI ChatCompletion API.
-        Includes retry logic for transient errors.
+        Build the memory-aware chat prompt and call OpenAI ChatCompletion.
         """
-        model       = await self.db.get_config("model",       self.settings.openai_chat_model)
+        model       = await self.db.get_config("model", self.settings.openai_chat_model)
         temperature = await self.db.get_config("temperature", self.settings.openai_temperature)
-        max_tokens  = await self.db.get_config("max_tokens",  self.settings.openai_max_tokens)
-        sys_prompt  = await self.db.get_config("system_prompt", self.settings.system_prompt)
+        max_tokens  = await self.db.get_config("max_tokens", self.settings.openai_max_tokens)
         biz_name    = await self.db.get_config("business_name", self.settings.business_name)
 
-        system_content = sys_prompt.format(
+        # Use the memory-aware system prompt
+        system_content = self.memory.get_system_prompt_template().format(
             business_name=biz_name,
             retrieved_context=context,
-            conversation_history=history,
+            memory_context=memory_context,
             user_query=user_query,
         )
 
         messages = [
-            {"role": "system",    "content": system_content},
-            {"role": "user",      "content": user_query},
+            {"role": "system", "content": system_content},
+            {"role": "user",   "content": user_query},
         ]
 
         for attempt in range(3):
@@ -321,7 +320,6 @@ class RAGService:
                 raise
 
         raise RuntimeError("LLM call failed after 3 attempts")
-
     # ══════════════════════════════════════════════════════════════
     # HEALTH CHECK
     # ══════════════════════════════════════════════════════════════
