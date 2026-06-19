@@ -34,6 +34,7 @@ class ChatResponse(BaseModel):
     processing_time_ms: Optional[int] = None
     type: str = "text"
     form_id: Optional[str] = None
+    form_prefill: Optional[Dict[str, str]] = None  # field_name → value for pre-filling
 
 
 class RatingRequest(BaseModel):

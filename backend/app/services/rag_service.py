@@ -76,7 +76,8 @@ class RAGService:
             intent_result = self.intent_detector.detect(user_message)
             if intent_result:
                 form_id = intent_result["form_id"]
-                form_message = self.intent_detector.get_form_message(form_id)
+                form_message = self.intent_detector.get_form_message(form_id)                # Build prefill data from memory
+                prefill = await self._build_form_prefill(session_id, form_id)
                 elapsed = int(time.time() * 1000) - start_ms
 
                 await self.memory.save_message(session_id, "assistant", form_message)
@@ -88,6 +89,7 @@ class RAGService:
 
                 return {
                     "response": form_message,
+                    "form_prefill":     prefill,
                     "type": "form",
                     "form_id": form_id,
                     "processing_ms": elapsed,
@@ -151,6 +153,85 @@ class RAGService:
                 "processing_ms": int(time.time() * 1000) - start_ms,
                 "retrieved_chunks": [],
             }
+    # ══════════════════════════════════════════════════════════════
+    # HELPER: Build form prefill data from memory
+    # ══════════════════════════════════════════════════════════════
+    async def _build_form_prefill(
+        self, session_id: str, form_id: str
+    ) -> Dict[str, str]:
+        """
+        Fetch conversation state and form state, map to form field names.
+        Returns a dict of field_name → value for pre-filling the form.
+        """
+        prefill: Dict[str, str] = {}
+
+        try:
+            # Get conversation state (project memory)
+            conv_state_row = await self.db.get_conversation_state(session_id)
+            conv_state = json.loads(conv_state_row["state_json"]) if conv_state_row else {}
+
+            # Get form state (quote form progress)
+            form_state_row = await self.db.get_form_state(session_id, "quote_request")
+            form_state = json.loads(form_state_row["form_json"]) if form_state_row else {}
+
+            # ── Map to get_quote form fields ───────────────────
+            if form_id == "get_quote":
+                # Direct mappings from form state
+                if form_state.get("customer_name"):
+                    prefill["name"] = form_state["customer_name"]
+                if form_state.get("phone"):
+                    prefill["phone"] = form_state["phone"]
+                if form_state.get("email"):
+                    prefill["email"] = form_state["email"]
+
+                # Build details from conversation state + form state
+                detail_parts = []
+                if conv_state.get("project_type"):
+                    detail_parts.append(conv_state["project_type"].replace("_", " ").title())
+                if conv_state.get("application_area"):
+                    detail_parts.append(conv_state["application_area"].replace("_", " ").title())
+                if conv_state.get("measured_area_m2"):
+                    area = conv_state["measured_area_m2"]
+                    waste = conv_state.get("waste_percent", 10)
+                    required = conv_state.get("calculated_required_m2")
+                    if required:
+                        detail_parts.append(f"{area}m² (approx {required}m² with {waste}% waste)")
+                    else:
+                        detail_parts.append(f"{area}m²")
+                if conv_state.get("product_interest"):
+                    detail_parts.append(conv_state["product_interest"].replace("_", " ").title())
+                if form_state.get("notes"):
+                    detail_parts.append(form_state["notes"])
+
+                if detail_parts:
+                    prefill["details"] = ", ".join(detail_parts)
+
+            # ── Map to get_in_touch form fields ────────────────
+            elif form_id == "get_in_touch":
+                if form_state.get("customer_name"):
+                    prefill["name"] = form_state["customer_name"]
+                if form_state.get("phone"):
+                    prefill["phone"] = form_state["phone"]
+                if form_state.get("email"):
+                    prefill["email"] = form_state["email"]
+                if form_state.get("preferred_branch"):
+                    prefill["store"] = form_state["preferred_branch"]
+
+                detail_parts = []
+                if conv_state.get("project_type"):
+                    detail_parts.append(f"Project: {conv_state['project_type'].replace('_', ' ').title()}")
+                if conv_state.get("product_interest"):
+                    detail_parts.append(f"Product: {conv_state['product_interest'].replace('_', ' ').title()}")
+                if form_state.get("notes"):
+                    detail_parts.append(form_state["notes"])
+
+                if detail_parts:
+                    prefill["details"] = "; ".join(detail_parts)
+
+        except Exception as e:
+            logger.warning(f"Prefill build failed for session={session_id[:8]}: {e}")
+
+        return prefill
 
     # ══════════════════════════════════════════════════════════════
     # STEP 1: Preprocess query

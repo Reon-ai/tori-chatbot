@@ -82,6 +82,7 @@ async def chat(
         processing_time_ms=result.get("processing_ms"),
         type=result.get("type", "text"),
         form_id=result.get("form_id"),
+        form_prefill=result.get("form_prefill"),
     )
 
 

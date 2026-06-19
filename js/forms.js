@@ -68,7 +68,7 @@ const FORMS = (() => {
     return fallbacks[formId] || null;
   }
 
-  async function showForm(formId, messageText) {
+    async function showForm(formId, messageText, prefillData) {
     const msgRow = CHAT.addMessage('bot', messageText || '');
 
     const formDef = await fetchFormDefinition(formId);
@@ -83,7 +83,7 @@ const FORMS = (() => {
     const formContainer = document.createElement('div');
     formContainer.className = 'chat-form-container';
     formContainer.id = `form-${formId}`;
-    formContainer.innerHTML = buildFormHTML(formDef);
+    formContainer.innerHTML = buildFormHTML(formDef, prefillData);
 
     const lastBotRow = document.querySelector('#chat-messages .msg-row.bot:last-child .msg-body');
     if (lastBotRow) {
@@ -97,12 +97,13 @@ const FORMS = (() => {
     bindFormEvents(formContainer, formId);
   }
 
-  function buildFormHTML(formDef) {
+    function buildFormHTML(formDef, prefillData) {
     const fields = formDef.fields || [];
+    const prefill = prefillData || {};
     let fieldsHTML = '';
 
     fields.forEach(field => {
-      fieldsHTML += renderField(field);
+      fieldsHTML += renderField(field, prefill[field.name]);
     });
 
     const honeypot = `<div class="form-honeypot" aria-hidden="true"><input type="text" name="_gotcha" tabindex="-1" autocomplete="off"></div>`;
@@ -125,55 +126,65 @@ const FORMS = (() => {
     `;
   }
 
-  function renderField(field) {
+   function renderField(field, prefillValue) {
     const requiredAttr = field.required ? 'required' : '';
     const requiredLabel = field.required ? ' <span class="required-mark">*</span>' : '';
     const fieldId = `field-${field.name}`;
+    const val = prefillValue || '';
 
     switch (field.type) {
       case 'select':
-        return `
-          <div class="chat-form-group">
-            <label class="chat-form-label" for="${fieldId}">${escapeHtml(field.label)}${requiredLabel}</label>
-            <select class="chat-form-select" id="${fieldId}" name="${escapeHtml(field.name)}" ${requiredAttr}>
-              <option value="">-- Select --</option>
-              ${(field.options || []).map(opt => `<option value="${escapeHtml(opt)}">${escapeHtml(opt)}</option>`).join('')}
-            </select>
-          </div>
-        `;
+        {
+          const options = (field.options || []).map(opt => {
+            const selected = opt === val ? ' selected' : '';
+            return `<option value="${escapeHtml(opt)}"${selected}>${escapeHtml(opt)}</option>`;
+          }).join('');
+          return `
+            <div class="chat-form-group">
+              <label class="chat-form-label" for="${fieldId}">${escapeHtml(field.label)}${requiredLabel}</label>
+              <select class="chat-form-select" id="${fieldId}" name="${escapeHtml(field.name)}" ${requiredAttr}>
+                <option value="">-- Select --</option>
+                ${options}
+              </select>
+            </div>
+          `;
+        }
 
       case 'textarea':
         return `
           <div class="chat-form-group">
             <label class="chat-form-label" for="${fieldId}">${escapeHtml(field.label)}${requiredLabel}</label>
-            <textarea class="chat-form-textarea" id="${fieldId}" name="${escapeHtml(field.name)}" placeholder="${escapeHtml(field.placeholder || '')}" ${requiredAttr} rows="3"></textarea>
+            <textarea class="chat-form-textarea" id="${fieldId}" name="${escapeHtml(field.name)}" placeholder="${escapeHtml(field.placeholder || '')}" ${requiredAttr} rows="3">${escapeHtml(val)}</textarea>
           </div>
         `;
 
       case 'checkbox':
-        return `
-          <div class="chat-form-group">
-            <label class="chat-form-checkbox-label">
-              <input type="checkbox" id="${fieldId}" name="${escapeHtml(field.name)}" ${requiredAttr}>
-              <span class="checkmark"></span>
-              <span class="checkbox-text">${escapeHtml(field.label)} ${requiredLabel}</span>
-            </label>
-          </div>
-        `;
+        {
+          const checked = val === true || val === 'true' || val === 'on' ? ' checked' : '';
+          return `
+            <div class="chat-form-group">
+              <label class="chat-form-checkbox-label">
+                <input type="checkbox" id="${fieldId}" name="${escapeHtml(field.name)}" ${requiredAttr}${checked}>
+                <span class="checkmark"></span>
+                <span class="checkbox-text">${escapeHtml(field.label)} ${requiredLabel}</span>
+              </label>
+            </div>
+          `;
+        }
 
       case 'date':
         return `
           <div class="chat-form-group">
             <label class="chat-form-label" for="${fieldId}">${escapeHtml(field.label)}${requiredLabel}</label>
-            <input type="date" class="chat-form-input" id="${fieldId}" name="${escapeHtml(field.name)}" ${requiredAttr}>
+            <input type="date" class="chat-form-input" id="${fieldId}" name="${escapeHtml(field.name)}" value="${escapeHtml(val)}" ${requiredAttr}>
           </div>
         `;
 
-      default:
+      default: // text, email, tel, number
         return `
           <div class="chat-form-group">
             <label class="chat-form-label" for="${fieldId}">${escapeHtml(field.label)}${requiredLabel}</label>
-            <input type="${field.type}" class="chat-form-input" id="${fieldId}" name="${escapeHtml(field.name)}" placeholder="${escapeHtml(field.placeholder || '')}" ${requiredAttr}>
+            <input type="${field.type}" class="chat-form-input" id="${fieldId}" name="${escapeHtml(field.name)}" value="${escapeHtml(val)}" placeholder="${escapeHtml(field.placeholder || '')}" ${requiredAttr}>
           </div>
         `;
     }

@@ -255,7 +255,7 @@ const CHAT = (() => {
       if (data?.response) {
         // ── Check if backend returned a form trigger ─────────────
         if (data.type === 'form' && data.form_id) {
-          FORMS.showForm(data.form_id, data.response);
+                    FORMS.showForm(data.form_id, data.response, data.form_prefill);
         } else {
           addMessage('bot', data.response, { messageId: data.message_id });
         }
