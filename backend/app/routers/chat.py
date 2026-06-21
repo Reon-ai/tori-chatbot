@@ -1,16 +1,17 @@
 """
 backend/app/routers/chat.py
 Chat API endpoints.
-POST /api/chat          — send a message & get RAG response
+POST /api/chat              — send a text message & get RAG response
+POST /api/chat/with-images  — send text + image(s) & get RAG response
 GET  /api/chat/history/{session_id} — retrieve conversation history
-POST /api/chat/transcribe — audio → text via OpenAI Whisper
-POST /api/chat/rating   — submit thumbs-up/down feedback
+POST /api/chat/transcribe   — audio → text via OpenAI Whisper
+POST /api/chat/rating       — submit thumbs-up/down feedback
 """
 
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
 
@@ -20,6 +21,7 @@ from app.models.schemas import (
     RatingRequest,
 )
 from app.services.rag_service import get_rag_service, RAGService
+from app.services.vision_service import get_vision_service, VisionService
 from app.services.database   import get_db, Database
 from app.utils.logger  import logger
 from app.utils.config  import get_settings
@@ -46,7 +48,7 @@ def _check_rate_limit(client_ip: str, limit: int = 30) -> bool:
 
 
 # ══════════════════════════════════════════════════════════════════
-# POST /api/chat
+# POST /api/chat  — text-only message
 # ══════════════════════════════════════════════════════════════════
 @router.post("", response_model=ChatResponse, status_code=status.HTTP_200_OK)
 async def chat(
@@ -87,6 +89,75 @@ async def chat(
 
 
 # ══════════════════════════════════════════════════════════════════
+# POST /api/chat/with-images  — text + image(s) → RAG response
+# ══════════════════════════════════════════════════════════════════
+@router.post("/with-images", response_model=ChatResponse, status_code=status.HTTP_200_OK)
+async def chat_with_images(
+    request:        Request,
+    session_id:     str            = File(...),
+    message:        str            = File(default=""),
+    images:         List[UploadFile] = File(default=[]),
+    rag_service:    RAGService     = Depends(get_rag_service),
+    vision_service: VisionService  = Depends(get_vision_service),
+    db:             Database       = Depends(get_db),
+) -> ChatResponse:
+    settings   = get_settings()
+    client_ip  = request.client.host if request.client else "unknown"
+
+    if not _check_rate_limit(client_ip, limit=settings.rate_limit_per_minute):
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                            detail="Too many requests.")
+
+    # Read image bytes
+    image_bytes_list = []
+    for img in images[:settings.vision_max_images]:
+        data = await img.read()
+        if data:
+            image_bytes_list.append(data)
+
+    if not image_bytes_list:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                            detail="No valid images uploaded.")
+
+    # Validate images
+    validation = vision_service.validate_images(image_bytes_list)
+    if not validation["valid"]:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                            detail=validation["error"])
+
+    logger.info(
+        f"Image chat | session={session_id[:8]} | ip={client_ip} | "
+        f"msg='{message[:60]}' | images={len(image_bytes_list)}"
+    )
+
+    # Run image-aware RAG
+    result = await rag_service.generate_response_with_images(
+        session_id=session_id,
+        user_message=message,
+        images=image_bytes_list,
+        vision_service=vision_service,
+    )
+
+    message_id = await db.save_conversation(
+        session_id=session_id,
+        user_message=f"[Image] {message}" if message else "[Image uploaded]",
+        bot_response=result["response"],
+        retrieved_chunks=result.get("retrieved_chunks", []),
+        processing_ms=result.get("processing_ms"),
+    )
+
+    return ChatResponse(
+        response=result["response"],
+        message_id=message_id,
+        session_id=session_id,
+        processing_time_ms=result.get("processing_ms"),
+        type=result.get("type", "text"),
+        form_id=result.get("form_id"),
+        form_prefill=result.get("form_prefill"),
+    )
+
+
+# ══════════════════════════════════════════════════════════════════
 # GET /api/chat/history/{session_id}
 # ══════════════════════════════════════════════════════════════════
 @router.get("/history/{session_id}", response_model=ChatHistoryResponse)
@@ -116,10 +187,6 @@ async def get_history(
 async def transcribe_audio(
     file: UploadFile = File(...),
 ) -> Dict[str, Any]:
-    """
-    Receive audio (webm/ogg) from browser MediaRecorder,
-    transcribe via OpenAI Whisper, return text.
-    """
     settings = get_settings()
     if not settings.openai_api_key:
         raise HTTPException(status_code=503, detail="OpenAI API key not configured.")
@@ -166,7 +233,4 @@ async def submit_rating(
     if not success:
         raise HTTPException(status_code=404, detail="Message not found.")
     return {"status": "ok", "message_id": payload.message_id, "rating": payload.rating}
-
-
-
   

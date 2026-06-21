@@ -93,7 +93,31 @@ const API = (() => {
     return POST('/api/chat/rating', { message_id: messageId, rating });
   }
 
-  // ── Forms API ─────────────────────────────────────────────────
+  // ── Chat with images ────────────────────────────────────────
+  async function sendMessageWithImages(sessionId, message, imageFiles, signal) {
+    if (APP_CONFIG.isDemoMode()) return demoSendMessage(message);
+
+    const base = APP_CONFIG.getBackendUrl();
+    const formData = new FormData();
+    formData.append("session_id", sessionId);
+    if (message) formData.append("message", message);
+    imageFiles.forEach(file => formData.append("images", file));
+
+    const resp = await fetch(`${base}/api/chat/with-images`, {
+      method: "POST",
+      body: formData,
+      signal,
+    });
+
+    if (!resp.ok) {
+      let msg = `HTTP ${resp.status}`;
+      try { const j = await resp.json(); msg = j.detail || j.message || msg; } catch {}
+      throw new Error(msg);
+    }
+    return resp.json();
+  }
+
+  // ── Forms ─────────────────────────────────────────────────────
   async function getForm(formId)      { return GET(`/api/forms/${formId}`); }
   async function listForms()          { return GET('/api/forms'); }
   async function submitForm(formId, data, sessionId) {
@@ -129,7 +153,9 @@ const API = (() => {
     "I don't have specific information about that right now. I'd recommend reaching out to our support team who can give you the most up-to-date details. Would you like help with something else I can assist with?",
   ];
 
-    function detectDemoIntent(message) {
+  // Demo intent detection — CONSERVATIVE (mirrors backend logic)
+  // Only triggers on clear action requests, NEVER on info queries
+  function detectDemoIntent(message) {
     const lower = message.toLowerCase();
     const intents = [
       {
@@ -159,9 +185,9 @@ const API = (() => {
     const formId = detectDemoIntent(message);
     if (formId) {
       const formMessages = {
-  get_quote: "I'd be happy to help with that! Please leave your details below and one of our team will get back to you with a quote.",
-  get_in_touch: "No problem — we'll have someone from our team contact you. Please leave your details below and we'll be in touch shortly.",
-};
+        get_quote: "I'd be happy to help with that! Please leave your details below and one of our team will get back to you with a quote.",
+        get_in_touch: "No problem — we'll have someone from our team contact you. Please leave your details below and we'll be in touch shortly.",
+      };
       return {
         response: formMessages[formId] || 'Please complete the form below.',
         type: 'form',
@@ -176,4 +202,76 @@ const API = (() => {
     if (lower.includes('sale') || lower.includes('deal') || lower.includes('discount') || lower.includes('product') || lower.includes('offer')) return DEMO_RESPONSES[4];
     if (lower.includes('contact') || lower.includes('support') || lower.includes('help') || lower.includes('phone')) return DEMO_RESPONSES[5];
     if (lower.includes('bulk') || lower.includes('wholesale') || lower.includes('business')) return DEMO_RESPONSES[6];
-    if (lower.includes('what
+    if (lower.includes('what') && lower.includes('offer')) return DEMO_RESPONSES[0];
+    return DEMO_RESPONSES[Math.floor(Math.random() * DEMO_RESPONSES.length)];
+  }
+
+  async function demoSendMessage(message) {
+    await new Promise(r => setTimeout(r, 900 + Math.random() * 1200));
+    const result = getDemoResponse(message);
+
+    const responseText = typeof result === 'string' ? result : result.response;
+    const isFormTrigger = typeof result === 'object' && result.type === 'form';
+
+    const convs = APP_CONFIG.get(APP_CONFIG.KEYS.CONVERSATIONS, []);
+    convs.push({
+      id: APP_CONFIG.generateSessionId(),
+      session_id: APP_CONFIG.getOrCreateSession(),
+      user_message: message,
+      bot_response: responseText,
+      timestamp: new Date().toISOString(),
+      rating: null,
+    });
+    if (convs.length > 200) convs.splice(0, convs.length - 200);
+    APP_CONFIG.set(APP_CONFIG.KEYS.CONVERSATIONS, convs);
+
+    const an = APP_CONFIG.get(APP_CONFIG.KEYS.ANALYTICS, { queries: 0, totalTime: 0 });
+    an.queries = (an.queries || 0) + 1;
+    an.totalTime = (an.totalTime || 0) + (900 + Math.random() * 1200);
+    APP_CONFIG.set(APP_CONFIG.KEYS.ANALYTICS, an);
+
+    const msgId = APP_CONFIG.generateSessionId();
+    if (isFormTrigger) {
+      return { response: result.response, type: 'form', form_id: result.form_id, message_id: msgId, sources: [] };
+    }
+    return { response: responseText, type: 'text', message_id: msgId, sources: [] };
+  }
+
+  // ── Unified chat (auto demo fallback) ─────────────────────────
+  async function chat(message, sessionId, signal) {
+    if (APP_CONFIG.isDemoMode()) return demoSendMessage(message);
+    return sendMessage(sessionId, message, signal);
+  }
+
+  return {
+    GET, POST, PUT, PATCH, DELETE,
+    uploadFile,
+    testConnection,
+    // Chat
+    chat,
+    chatWithImages: sendMessageWithImages,
+    sendMessage,
+    sendMessageWithImages,
+    getChatHistory,
+    submitRating,
+    // Forms
+    getForm,
+    listForms,
+    submitForm,
+    // Documents
+    getDocuments,
+    deleteDocument,
+    reindexDocuments,
+    // Analytics
+    getAnalytics,
+    // Conversations
+    getConversations,
+    // Config
+    saveConfig,
+    getConfig,
+    // Demo
+    demoSendMessage,
+  };
+})();
+
+window.API = API;

@@ -127,6 +127,10 @@ Guidelines:
     memory_turns: int = 10
     # Days to keep session memory before auto-cleanup
     memory_retention_days: int = 30
+    # ── Vision / Image Analysis ───────────────────────────────
+    vision_model: str = "gpt-4o-mini"
+    vision_max_images: int = 3
+    vision_max_image_size_mb: int = 5
 
     @field_validator("openai_api_key")
     @classmethod

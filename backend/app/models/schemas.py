@@ -32,8 +32,9 @@ class ChatResponse(BaseModel):
     message_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     session_id: str
     processing_time_ms: Optional[int] = None
-    type: str = "text"
-    form_id: Optional[str] = None
+    # ── Form response fields ─────────────────────────────────────
+    type: str = "text"           # "text" | "form"
+    form_id: Optional[str] = None  # set when type == "form"
     form_prefill: Optional[Dict[str, str]] = None  # field_name → value for pre-filling
 
 
@@ -55,6 +56,25 @@ class ChatHistoryResponse(BaseModel):
     session_id: str
     messages: List[ChatHistoryItem]
     total: int
+
+
+# ══════════════════════════════════════════════════════════════════
+# IMAGE ANALYSIS
+# ══════════════════════════════════════════════════════════════════
+
+class ImageAnalysisResponse(BaseModel):
+    """Structured output from vision model image analysis."""
+    image_detected: bool = True
+    image_count: int = 1
+    overall_confidence: str = "medium"  # high | medium | low
+    image_type: str = "unknown"  # tile_damage | product_label | room_scene | installation_issue | quote_request | unknown
+    visible_items: List[str] = Field(default_factory=list)
+    detected_text: List[str] = Field(default_factory=list)
+    tile_related_observations: List[str] = Field(default_factory=list)
+    possible_customer_intent: str = ""
+    recommended_rag_query: str = ""
+    questions_to_ask_customer: List[str] = Field(default_factory=list)
+    human_escalation_required: bool = False
 
 
 # ══════════════════════════════════════════════════════════════════

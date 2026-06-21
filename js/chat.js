@@ -1,5 +1,5 @@
 /**
- * chat.js — All chat UI logic: messages, typing, input, suggestions
+ * chat.js — All chat UI logic: messages, typing, input, suggestions, image upload
  */
 
 'use strict';
@@ -10,6 +10,7 @@ const CHAT = (() => {
   let isWaiting  = false;
   let abortCtrl  = null;
   let messageIdx = 0;
+  let selectedImages = [];  // files waiting to be sent
 
   // ── DOM refs ──────────────────────────────────────────────────
   const refs = {};
@@ -30,6 +31,9 @@ const CHAT = (() => {
     refs.confirmClear      = document.getElementById('confirm-clear');
     refs.cancelClear       = document.getElementById('cancel-clear');
     refs.closeClearModal   = document.getElementById('close-clear-modal');
+    refs.imageUploadBtn    = document.getElementById('image-upload-btn');
+    refs.imageInput        = document.getElementById('image-input');
+    refs.imagePreviewRow   = document.getElementById('image-preview-row');
   }
 
   // ── Session init ──────────────────────────────────────────────
@@ -73,18 +77,12 @@ const CHAT = (() => {
   function formatMessage(text) {
     if (!text) return '';
     let html = escapeHtml(text);
-    // Bold: **text**
     html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-    // Italic: *text*
     html = html.replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>');
-    // Unordered lists
     html = html.replace(/^[\s]*[-*•]\s+(.+)$/gm, '<li>$1</li>');
     html = html.replace(/((?:<li>.*<\/li>\n?)+)/g, '<ul>$1</ul>');
-    // Ordered lists
     html = html.replace(/^\d+\.\s+(.+)$/gm, '<li>$1</li>');
-    // Line breaks → paragraphs
     html = html.split(/\n{2,}/).map(p => p.trim() ? `<p>${p.replace(/\n/g, '<br/>')}</p>` : '').join('');
-    // If no <p> tags yet, wrap
     if (!html.includes('<p>') && !html.includes('<ul>') && !html.includes('<li>')) {
       html = `<p>${html}</p>`;
     }
@@ -101,7 +99,6 @@ const CHAT = (() => {
     const { timestamp = new Date(), messageId = null } = options;
     const idx = ++messageIdx;
 
-    // Hide suggestions on first real message
     if (refs.suggestionsRow && idx >= 1) {
       refs.suggestionsRow.style.display = 'none';
     }
@@ -115,7 +112,6 @@ const CHAT = (() => {
     const avatarEmoji = isBot ? '🤖' : '👤';
     const bubbleContent = isBot ? formatMessage(text) : `<p>${escapeHtml(text)}</p>`;
 
-    // Build rating buttons (only for bot)
     const ratingHtml = isBot ? `
       <button class="rating-btn up" aria-label="Helpful" title="Helpful">
         <i class="fas fa-thumbs-up"></i>
@@ -138,7 +134,6 @@ const CHAT = (() => {
       </div>
     `;
 
-    // Copy button handler
     row.querySelector('.copy-btn').addEventListener('click', () => {
       navigator.clipboard?.writeText(text).then(() => {
         TOAST.show('Copied to clipboard', 'success');
@@ -147,7 +142,6 @@ const CHAT = (() => {
       });
     });
 
-    // Rating button handlers
     if (isBot) {
       const upBtn   = row.querySelector('.rating-btn.up');
       const downBtn = row.querySelector('.rating-btn.down');
@@ -230,32 +224,45 @@ const CHAT = (() => {
     if (refs.sendBtn) refs.sendBtn.disabled = !enabled;
   }
 
-  // ── Send message ──────────────────────────────────────────────
+  // ══════════════════════════════════════════════════════════════
+  // SEND MESSAGE (text or text + images)
+  // ══════════════════════════════════════════════════════════════
   async function sendMessage(text) {
     const msg = text.trim();
-    if (!msg || isWaiting) return;
+    const hasImages = selectedImages.length > 0;
+
+    if ((!msg && !hasImages) || isWaiting) return;
 
     setInputEnabled(false);
-    setStatus('busy', 'Thinking…');
+    setStatus('busy', hasImages ? 'Analysing image…' : 'Thinking…');
     showTyping();
 
-    addMessage('user', msg);
+    const displayMsg = hasImages
+      ? (msg ? msg + ' [+ ' + selectedImages.length + ' image(s)]' : '[Image uploaded]')
+      : msg;
+    addMessage('user', displayMsg);
 
     if (refs.input) { refs.input.value = ''; autoResize(); }
     if (refs.charCount) refs.charCount.textContent = '0/1000';
+
+    clearImageSelection();
 
     abortCtrl = new AbortController();
     const startTime = Date.now();
 
     try {
-      const data = await API.chat(msg, sessionId, abortCtrl.signal);
+      let data;
+      if (hasImages) {
+        data = await API.chatWithImages(sessionId, msg, selectedImages, abortCtrl.signal);
+      } else {
+        data = await API.chat(msg, sessionId, abortCtrl.signal);
+      }
       const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
 
       hideTyping();
       if (data?.response) {
-        // ── Check if backend returned a form trigger ─────────────
         if (data.type === 'form' && data.form_id) {
-                    FORMS.showForm(data.form_id, data.response, data.form_prefill);
+          FORMS.showForm(data.form_id, data.response, data.form_prefill);
         } else {
           addMessage('bot', data.response, { messageId: data.message_id });
         }
@@ -273,9 +280,94 @@ const CHAT = (() => {
         addErrorMessage(err.message || 'Request failed');
       }
     } finally {
+      selectedImages = [];
       setInputEnabled(true);
       abortCtrl = null;
       setTimeout(() => setStatus('online', 'Assistant Ready'), 3000);
+    }
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // IMAGE UPLOAD
+  // ══════════════════════════════════════════════════════════════
+
+  function onImageUploadBtnClick() {
+    refs.imageInput?.click();
+  }
+
+  function onImageInputChange(e) {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+
+    const allowed = ['image/jpeg', 'image/png', 'image/webp'];
+    const maxSize = 5 * 1024 * 1024;
+    const maxImages = 3;
+
+    let added = 0;
+    for (const file of files) {
+      if (selectedImages.length >= maxImages) {
+        TOAST.show('Maximum 3 images allowed', 'error');
+        break;
+      }
+      if (!allowed.includes(file.type)) {
+        TOAST.show(`"${file.name}" is not supported. Use JPG, PNG, or WEBP.`, 'error');
+        continue;
+      }
+      if (file.size > maxSize) {
+        TOAST.show(`"${file.name}" is too large. Maximum is 5MB.`, 'error');
+        continue;
+      }
+      selectedImages.push(file);
+      added++;
+    }
+
+    if (added > 0) {
+      renderImagePreviews();
+      TOAST.show(`${added} image(s) selected. Type your message and send.`, 'success');
+    }
+
+    if (refs.imageInput) refs.imageInput.value = '';
+  }
+
+  function renderImagePreviews() {
+    if (!refs.imagePreviewRow) return;
+
+    if (selectedImages.length === 0) {
+      refs.imagePreviewRow.classList.add('hidden');
+      refs.imagePreviewRow.innerHTML = '';
+      return;
+    }
+
+    refs.imagePreviewRow.classList.remove('hidden');
+    refs.imagePreviewRow.innerHTML = selectedImages.map((file, idx) => `
+      <div class="image-preview-thumb" data-idx="${idx}">
+        <img src="${URL.createObjectURL(file)}" alt="${escapeHtml(file.name)}" />
+        <button class="image-preview-remove" data-idx="${idx}" title="Remove image" aria-label="Remove image">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+    `).join('');
+
+    refs.imagePreviewRow.querySelectorAll('.image-preview-remove').forEach(btn => {
+      btn.addEventListener('click', e => {
+        const idx = parseInt(e.currentTarget.dataset.idx);
+        removeImage(idx);
+      });
+    });
+  }
+
+  function removeImage(idx) {
+    if (idx >= 0 && idx < selectedImages.length) {
+      selectedImages.splice(idx, 1);
+      renderImagePreviews();
+    }
+  }
+
+  function clearImageSelection() {
+    selectedImages = [];
+    if (refs.imagePreviewRow) {
+      refs.imagePreviewRow.classList.add('hidden');
+      refs.imagePreviewRow.innerHTML = '';
     }
   }
 
@@ -290,6 +382,8 @@ const CHAT = (() => {
   function clearChat() {
     refs.messagesContainer.innerHTML = '';
     messageIdx = 0;
+    selectedImages = [];
+    clearImageSelection();
     sessionId = APP_CONFIG.refreshSession();
     if (refs.sessionDisplay) refs.sessionDisplay.textContent = `Session: ${sessionId.split('-')[0]}`;
     if (refs.suggestionsRow) refs.suggestionsRow.style.display = '';
@@ -339,6 +433,10 @@ const CHAT = (() => {
     refs.clearModal?.addEventListener('click', e => {
       if (e.target === refs.clearModal) refs.clearModal.classList.add('hidden');
     });
+
+    // Image upload events
+    refs.imageUploadBtn?.addEventListener('click', onImageUploadBtnClick);
+    refs.imageInput?.addEventListener('change', onImageInputChange);
   }
 
   // ── Public init ───────────────────────────────────────────────

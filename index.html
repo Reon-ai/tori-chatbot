@@ -81,11 +81,15 @@
         </button>
       </div>
 
+      <!-- Image previews (shown when images selected) -->
+      <div id="image-preview-row" class="image-preview-row hidden"></div>
+
       <!-- Input bar -->
       <form id="chat-form" class="chat-input-bar" autocomplete="off">
-        <button type="button" id="attach-btn" class="icon-btn" title="Attach file (coming soon)" aria-label="Attach file" disabled>
-          <i class="fas fa-paperclip"></i>
+        <button type="button" id="image-upload-btn" class="icon-btn" title="Upload image" aria-label="Upload image">
+          <i class="fas fa-camera"></i>
         </button>
+        <input type="file" id="image-input" class="hidden" accept="image/jpeg,image/png,image/webp" multiple aria-label="Select images" />
         <textarea
           id="chat-input"
           placeholder="Ask me anything about products, orders, or policies…"
