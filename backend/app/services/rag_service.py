@@ -39,7 +39,12 @@ class RAGService:
             self._openai_client = AsyncOpenAI(api_key=self.settings.openai_api_key)
         return self._openai_client
 
-    # ══════════════════════════════════════════════════════════════
+  
+    @classmethod
+    async def create(cls) -> RAGService:
+        """Factory: create and return a RAGService instance."""
+        return cls() 
+ # ══════════════════════════════════════════════════════════════
     # PUBLIC: generate_response  (text-only)
     # ══════════════════════════════════════════════════════════════
     async def generate_response(self, session_id: str, user_message: str) -> Dict[str, Any]:
