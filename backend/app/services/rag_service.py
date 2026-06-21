@@ -44,6 +44,47 @@ class RAGService:
     async def create(cls) -> RAGService:
         """Factory: create and return a RAGService instance."""
         return cls() 
+
+    # ══════════════════════════════════════════════════════════════
+    # HELPER: Build form prefill data from memory
+    # ══════════════════════════════════════════════════════════════
+    async def _build_form_prefill(self, session_id, form_id):
+        prefill = {}
+        try:
+            conv_state_row = await self.db.get_conversation_state(session_id)
+            conv_state = json.loads(conv_state_row["state_json"]) if conv_state_row else {}
+            form_state_row = await self.db.get_form_state(session_id, "quote_request")
+            form_state = json.loads(form_state_row["form_json"]) if form_state_row else {}
+
+            if form_id == "get_quote":
+                if form_state.get("customer_name"): prefill["name"] = form_state["customer_name"]
+                if form_state.get("phone"): prefill["phone"] = form_state["phone"]
+                if form_state.get("email"): prefill["email"] = form_state["email"]
+                detail_parts = []
+                room = conv_state.get("project_type") or conv_state.get("application_area")
+                if room: detail_parts.append(room.replace("_", " ").title())
+                area = conv_state.get("area_m2") or conv_state.get("measured_area_m2")
+                if area: detail_parts.append(f"{area}m²")
+                product = conv_state.get("product_category") or conv_state.get("product_interest")
+                if product: detail_parts.append(product.replace("_", " ").title())
+                if form_state.get("notes"): detail_parts.append(form_state["notes"])
+                if detail_parts: prefill["details"] = ", ".join(detail_parts)
+
+            elif form_id == "get_in_touch":
+                if form_state.get("customer_name"): prefill["name"] = form_state["customer_name"]
+                if form_state.get("phone"): prefill["phone"] = form_state["phone"]
+                if form_state.get("email"): prefill["email"] = form_state["email"]
+                if form_state.get("preferred_branch"): prefill["store"] = form_state["preferred_branch"]
+                detail_parts = []
+                if conv_state.get("project_type"): detail_parts.append(f"Project: {conv_state['project_type'].replace('_', ' ').title()}")
+                if conv_state.get("product_category"): detail_parts.append(f"Product: {conv_state['product_category'].replace('_', ' ').title()}")
+                if form_state.get("notes"): detail_parts.append(form_state["notes"])
+                if detail_parts: prefill["details"] = "; ".join(detail_parts)
+
+        except Exception as e:
+            logger.warning(f"Prefill build failed: {e}")
+        return prefill
+
  # ══════════════════════════════════════════════════════════════
     # PUBLIC: generate_response  (text-only)
     # ══════════════════════════════════════════════════════════════
