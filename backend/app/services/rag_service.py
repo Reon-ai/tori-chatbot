@@ -323,3 +323,17 @@ class RAGService:
             return True
         except Exception:
             return False
+
+
+
+# ══════════════════════════════════════════════════════════════
+# SINGLETON
+# ══════════════════════════════════════════════════════════════
+_rag_service_instance: Optional["RAGService"] = None
+
+
+async def get_rag_service() -> RAGService:
+    global _rag_service_instance
+    if _rag_service_instance is None:
+        _rag_service_instance = await RAGService.create()
+    return _rag_service_instance
