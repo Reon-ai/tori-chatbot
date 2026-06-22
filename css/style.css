@@ -792,6 +792,122 @@ img, video { max-width: 100%; }
 .send-btn:disabled { background: var(--border-2); border-color: var(--border-2); color: var(--text-3); cursor: not-allowed; transform: none; }
 
 /* ============================================================
+   IMAGE UPLOAD BUTTON — Bright yellow, very visible
+   ============================================================ */
+#image-upload-btn {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  min-height: 40px;
+  border-radius: var(--radius-md);
+  background: var(--brand-yellow);
+  color: var(--brand-black);
+  border: 2px solid var(--brand-yellow-dark);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.05rem;
+  transition: all var(--transition);
+  flex-shrink: 0;
+  margin-right: 2px;
+  margin-bottom: 2px;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow: 0 2px 6px rgba(252, 227, 0, 0.35);
+}
+
+#image-upload-btn:hover {
+  background: var(--brand-yellow-dark);
+  border-color: var(--brand-yellow-deep);
+  transform: scale(1.08);
+  box-shadow: 0 4px 12px rgba(252, 227, 0, 0.5);
+}
+
+#image-upload-btn:active {
+  background: var(--brand-yellow-deep);
+  transform: scale(0.95);
+}
+
+/* Dark mode override — keep it yellow */
+.dark-mode #image-upload-btn {
+  background: var(--brand-yellow);
+  color: var(--brand-black);
+  border-color: var(--brand-yellow-dark);
+}
+
+.dark-mode #image-upload-btn:hover {
+  background: var(--brand-yellow-dark);
+}
+
+/* ============================================================
+   IMAGE UPLOAD PREVIEW ROW
+   ============================================================ */
+.image-preview-row {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  overflow-x: auto;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  animation: msgIn 0.25s ease forwards;
+}
+
+.image-preview-row.hidden {
+  display: none !important;
+}
+
+/* Individual image thumbnail */
+.image-preview-thumb {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.image-preview-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Remove button on thumbnail */
+.image-preview-remove {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  border: none;
+  font-size: 0.6rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: background 0.15s;
+}
+
+.image-preview-remove:hover {
+  background: var(--danger);
+}
+
+/* Dark mode */
+.dark-mode .image-preview-row {
+  background: var(--surface);
+  border-color: var(--border);
+}
+
+.dark-mode .image-preview-thumb {
+  border-color: var(--border);
+}
+
+/* ============================================================
    MODALS
    ============================================================ */
 .modal-overlay {
@@ -1075,7 +1191,6 @@ img, video { max-width: 100%; }
 }
 
 
-
 /* ============================================================
    INLINE CHAT FORMS — Intent-based form rendering
    ============================================================ */
@@ -1250,7 +1365,7 @@ img, video { max-width: 100%; }
   box-shadow: none !important;
 }
 
-/* Success state */
+/* ── Success state ─────────────────────────────────────────── */
 .chat-form-success {
   display: flex;
   flex-direction: column;
@@ -1287,7 +1402,7 @@ img, video { max-width: 100%; }
   margin-top: 0.25rem;
 }
 
-/* Anti-spam honeypot */
+/* ── Anti-spam honeypot ────────────────────────────────────── */
 .form-honeypot {
   position: absolute;
   left: -9999px;
@@ -1296,7 +1411,7 @@ img, video { max-width: 100%; }
   pointer-events: none;
 }
 
-/* Dark mode adjustments */
+/* ── Dark mode adjustments ─────────────────────────────────── */
 .dark-mode .chat-form-container {
   background: var(--surface);
   border-color: var(--border);
@@ -1314,7 +1429,7 @@ img, video { max-width: 100%; }
   border-color: var(--border);
 }
 
-/* Tablet / desktop sizing */
+/* ── Tablet / desktop sizing ───────────────────────────────── */
 @media (min-width: 480px) {
   .chat-form-body {
     padding: 1.15rem;
@@ -1336,66 +1451,4 @@ img, video { max-width: 100%; }
     font-size: 0.9rem;
     padding: 0.65rem 0.9rem;
   }
-}
-
-
-/* ── Image upload preview row ── */
-.image-preview-row {
-    display: flex;
-    gap: 0.5rem;
-    padding: 0.5rem 1rem;
-    overflow-x: auto;
-    background: var(--surface);
-    border-top: 1px solid var(--border);
-}
-
-.image-preview-row.hidden {
-    display: none !important;
-}
-
-.image-preview-thumb {
-    position: relative;
-    width: 64px;
-    height: 64px;
-    border-radius: var(--radius-sm);
-    overflow: hidden;
-    border: 1px solid var(--border);
-    flex-shrink: 0;
-}
-
-.image-preview-thumb img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.image-preview-remove {
-    position: absolute;
-    top: 2px;
-    right: 2px;
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: rgba(0,0,0,0.6);
-    color: #fff;
-    border: none;
-    font-size: 0.6rem;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0;
-}
-
-.image-preview-remove:hover {
-    background: var(--danger);
-}
-
-#image-upload-btn {
-    color: var(--text-2);
-}
-
-#image-upload-btn:hover {
-    color: var(--brand-yellow);
-    background: var(--brand-yellow-bg);
 }
