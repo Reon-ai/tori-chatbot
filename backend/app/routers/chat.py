@@ -10,14 +10,13 @@ POST /api/chat/rating   — submit thumbs-up/down feedback
 
 from __future__ import annotations
 
-import uuid
 from datetime import datetime
 from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile, status
 
 from app.models.schemas import (
-    ChatRequest, ChatResponse, FormAction,
+    ChatRequest, ChatResponse,
     ChatHistoryResponse, ChatHistoryItem,
     RatingRequest,
 )
@@ -90,14 +89,10 @@ async def chat(
         processing_ms=result.get("processing_ms"),
     )
 
-    raw_fa      = result.get("form_action")
-    form_action = FormAction(**raw_fa) if raw_fa else None
-
     return ChatResponse(
         response=result["response"],
         message_id=message_id,
         session_id=payload.session_id,
-        form_action=form_action,
         processing_time_ms=result.get("processing_ms"),
     )
 
