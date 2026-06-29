@@ -1,28 +1,27 @@
 """
 backend/app/routers/chat.py
 Chat API endpoints.
-POST /api/chat              — send a text message & get RAG response
-POST /api/chat/with-images  — send text + image(s) & get RAG response
+POST /api/chat          — send a message & get RAG response
 GET  /api/chat/history/{session_id} — retrieve conversation history
-POST /api/chat/transcribe   — audio → text via OpenAI Whisper
-POST /api/chat/rating       — submit thumbs-up/down feedback
+POST /api/chat/transcribe — audio to text via OpenAI Whisper
+POST /api/chat/image    — image vision analysis via GPT-4o
+POST /api/chat/rating   — submit thumbs-up/down feedback
 """
 
 from __future__ import annotations
 
+import uuid
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile, status
 
-
 from app.models.schemas import (
-    ChatRequest, ChatResponse,
+    ChatRequest, ChatResponse, FormAction,
     ChatHistoryResponse, ChatHistoryItem,
     RatingRequest,
 )
 from app.services.rag_service import get_rag_service, RAGService
-from app.services.vision_service import get_vision_service, VisionService
 from app.services.database   import get_db, Database
 from app.utils.logger  import logger
 from app.utils.config  import get_settings
@@ -49,7 +48,7 @@ def _check_rate_limit(client_ip: str, limit: int = 30) -> bool:
 
 
 # ══════════════════════════════════════════════════════════════════
-# POST /api/chat  — text-only message
+# POST /api/chat
 # ══════════════════════════════════════════════════════════════════
 @router.post("", response_model=ChatResponse, status_code=status.HTTP_200_OK)
 async def chat(
@@ -60,17 +59,29 @@ async def chat(
 ) -> ChatResponse:
     settings   = get_settings()
     client_ip  = request.client.host if request.client else "unknown"
+
     if not _check_rate_limit(client_ip, limit=settings.rate_limit_per_minute):
-        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                            detail="Too many requests. Please wait a moment.")
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many requests. Please wait a moment before trying again.",
+        )
+
     if not payload.message.strip():
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                            detail="Message cannot be empty.")
-    logger.info(f"Chat request | session={payload.session_id[:8]} | ip={client_ip} | msg='{payload.message[:80]}'")
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Message cannot be empty.",
+        )
+
+    logger.info(
+        f"Chat request | session={payload.session_id[:8]} | "
+        f"ip={client_ip} | msg='{payload.message[:80]}'"
+    )
+
     result = await rag_service.generate_response(
         session_id=payload.session_id,
         user_message=payload.message,
     )
+
     message_id = await db.save_conversation(
         session_id=payload.session_id,
         user_message=payload.message,
@@ -78,83 +89,16 @@ async def chat(
         retrieved_chunks=result.get("retrieved_chunks", []),
         processing_ms=result.get("processing_ms"),
     )
+
+    raw_fa      = result.get("form_action")
+    form_action = FormAction(**raw_fa) if raw_fa else None
+
     return ChatResponse(
         response=result["response"],
         message_id=message_id,
         session_id=payload.session_id,
+        form_action=form_action,
         processing_time_ms=result.get("processing_ms"),
-        type=result.get("type", "text"),
-        form_id=result.get("form_id"),
-        form_prefill=result.get("form_prefill"),
-    )
-
-
-# ══════════════════════════════════════════════════════════════════
-# POST /api/chat/with-images  — text + image(s) → RAG response
-# ══════════════════════════════════════════════════════════════════
-@router.post("/with-images", response_model=ChatResponse, status_code=status.HTTP_200_OK)
-async def chat_with_images(
-    request:        Request,
-    session_id:     str            = Form(default=""),
-    message:        str            = File(default=""),
-    images:         List[UploadFile] = File(default=[]),
-    rag_service:    RAGService     = Depends(get_rag_service),
-    vision_service: VisionService  = Depends(get_vision_service),
-    db:             Database       = Depends(get_db),
-) -> ChatResponse:
-    settings   = get_settings()
-    client_ip  = request.client.host if request.client else "unknown"
-
-    if not _check_rate_limit(client_ip, limit=settings.rate_limit_per_minute):
-        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                            detail="Too many requests.")
-
-    # Read image bytes
-    image_bytes_list = []
-    for img in images[:settings.vision_max_images]:
-        data = await img.read()
-        if data:
-            image_bytes_list.append(data)
-
-    if not image_bytes_list:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                            detail="No valid images uploaded.")
-
-    # Validate images
-    validation = vision_service.validate_images(image_bytes_list)
-    if not validation["valid"]:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                            detail=validation["error"])
-
-    logger.info(
-        f"Image chat | session={session_id[:8]} | ip={client_ip} | "
-        f"msg='{message[:60]}' | images={len(image_bytes_list)}"
-    )
-
-    # Run image-aware RAG
-    result = await rag_service.generate_response_with_images(
-        session_id=session_id,
-        user_message=message,
-        images=image_bytes_list,
-        vision_service=vision_service,
-    )
-
-    message_id = await db.save_conversation(
-        session_id=session_id,
-        user_message=f"[Image] {message}" if message else "[Image uploaded]",
-        bot_response=result["response"],
-        retrieved_chunks=result.get("retrieved_chunks", []),
-        processing_ms=result.get("processing_ms"),
-    )
-
-    return ChatResponse(
-        response=result["response"],
-        message_id=message_id,
-        session_id=session_id,
-        processing_time_ms=result.get("processing_ms"),
-        type=result.get("type", "text"),
-        form_id=result.get("form_id"),
-        form_prefill=result.get("form_prefill"),
     )
 
 
@@ -178,7 +122,11 @@ async def get_history(
         )
         for m in messages
     ]
-    return ChatHistoryResponse(session_id=session_id, messages=items, total=len(items))
+    return ChatHistoryResponse(
+        session_id=session_id,
+        messages=items,
+        total=len(items),
+    )
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -189,12 +137,19 @@ async def transcribe_audio(
     file: UploadFile = File(...),
 ) -> Dict[str, Any]:
     settings = get_settings()
+
     if not settings.openai_api_key:
-        raise HTTPException(status_code=503, detail="OpenAI API key not configured.")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="OpenAI API key not configured.",
+        )
 
     audio_bytes = await file.read()
     if len(audio_bytes) < 500:
-        raise HTTPException(status_code=422, detail="Audio too short — no speech detected.")
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Audio too short — no speech detected.",
+        )
 
     filename = file.filename or "audio.webm"
     ext = filename.rsplit(".", 1)[-1].lower()
@@ -202,7 +157,8 @@ async def transcribe_audio(
         ext = "webm"
 
     try:
-        import openai, io
+        import openai
+        import io
         client = openai.AsyncOpenAI(api_key=settings.openai_api_key)
         audio_file = io.BytesIO(audio_bytes)
         audio_file.name = f"audio.{ext}"
@@ -214,12 +170,152 @@ async def transcribe_audio(
         transcript = response.text.strip()
         logger.info(f"Whisper transcript: '{transcript[:80]}'")
         return {"transcript": transcript}
+
     except openai.APIError as e:
         logger.error(f"Whisper API error: {e}")
-        raise HTTPException(status_code=502, detail=f"Transcription failed: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"Transcription failed: {str(e)}",
+        )
     except Exception as e:
         logger.error(f"Transcription error: {e}")
-        raise HTTPException(status_code=500, detail=f"Transcription error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Transcription error: {str(e)}",
+        )
+
+
+# ══════════════════════════════════════════════════════════════════
+# POST /api/chat/image  — image → vision analysis via GPT-4o
+# ══════════════════════════════════════════════════════════════════
+@router.post("/image", status_code=status.HTTP_200_OK)
+async def analyse_image(
+    request:    Request,
+    file:       UploadFile = File(...),
+    session_id: str        = Form(default=""),
+    message:    str        = Form(default=""),
+    db:         Database   = Depends(get_db),
+) -> Dict[str, Any]:
+    import base64
+    import io
+    import openai
+
+    settings  = get_settings()
+    client_ip = request.client.host if request.client else "unknown"
+
+    if not _check_rate_limit(client_ip, limit=settings.rate_limit_per_minute):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many requests. Please wait a moment before trying again.",
+        )
+
+    if not settings.openai_api_key:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="OpenAI API key not configured.",
+        )
+
+    filename  = (file.filename or "image.jpg").lower()
+    ext       = filename.rsplit(".", 1)[-1] if "." in filename else "jpg"
+    mime_map  = {"jpg": "image/jpeg", "jpeg": "image/jpeg",
+                 "png": "image/png",  "webp": "image/webp",
+                 "gif": "image/gif"}
+    if ext not in mime_map:
+        raise HTTPException(
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail=f"Unsupported image type '.{ext}'. Please upload a JPG, PNG, WEBP or GIF.",
+        )
+    mime_type = mime_map[ext]
+
+    image_bytes = await file.read()
+    if len(image_bytes) < 100:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Image file appears to be empty or corrupt.",
+        )
+    if len(image_bytes) > 10 * 1024 * 1024:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail="Image is too large. Please upload an image under 10 MB.",
+        )
+
+    b64      = base64.b64encode(image_bytes).decode("utf-8")
+    data_url = f"data:{mime_type};base64,{b64}"
+
+    user_text = (message or "").strip() or (
+        "Please look at this image and help me with any relevant tile, "
+        "flooring, sanware or installation advice."
+    )
+
+    vision_system = (
+        f"{settings.system_prompt}\n\n"
+        "## VISION MODE\n"
+        "The customer has uploaded a photo. Analyse it carefully. "
+        "Look for: tile type, size, finish, grout lines, installation quality, "
+        "visible damage (cracks, chips, lippage, efflorescence, staining), "
+        "waterproofing concerns, sanware style, or any other detail relevant "
+        "to Tiletoria's products and services. "
+        "Give a concise, practical, professional assessment as Tori. "
+        "If you can identify the product or style, do so. "
+        "If you see a problem, describe it clearly and advise the next step. "
+        "If you cannot determine enough from the image, ask ONE smart follow-up question."
+    )
+
+    logger.info(
+        f"Image analysis | session={session_id[:8] if session_id else 'anon'} | "
+        f"ip={client_ip} | size={len(image_bytes)//1024}KB | ext={ext}"
+    )
+
+    try:
+        client = openai.AsyncOpenAI(api_key=settings.openai_api_key)
+        response = await client.chat.completions.create(
+            model="gpt-4o",
+            max_tokens=600,
+            messages=[
+                {"role": "system", "content": vision_system},
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type":      "image_url",
+                            "image_url": {"url": data_url, "detail": "high"},
+                        },
+                        {"type": "text", "text": user_text},
+                    ],
+                },
+            ],
+        )
+
+        tori_response = response.choices[0].message.content.strip()
+        logger.info(f"Vision response: '{tori_response[:80]}'")
+
+        effective_session = session_id or "image-anon"
+        message_id = await db.save_conversation(
+            session_id=effective_session,
+            user_message=f"[Photo] {user_text}",
+            bot_response=tori_response,
+            retrieved_chunks=[],
+            processing_ms=None,
+        )
+
+        return {
+            "response":   tori_response,
+            "message_id": message_id,
+            "session_id": effective_session,
+        }
+
+    except openai.APIError as e:
+        logger.error(f"Vision API error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"Image analysis failed: {str(e)}",
+        )
+    except Exception as e:
+        logger.error(f"Vision error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Image analysis error: {str(e)}",
+        )
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -232,6 +328,8 @@ async def submit_rating(
 ) -> Dict[str, Any]:
     success = await db.update_rating(payload.message_id, payload.rating)
     if not success:
-        raise HTTPException(status_code=404, detail="Message not found.")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Message not found.",
+        )
     return {"status": "ok", "message_id": payload.message_id, "rating": payload.rating}
-  
