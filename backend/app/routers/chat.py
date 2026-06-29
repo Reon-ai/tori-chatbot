@@ -13,7 +13,8 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile, status
+
 
 from app.models.schemas import (
     ChatRequest, ChatResponse,
@@ -94,7 +95,7 @@ async def chat(
 @router.post("/with-images", response_model=ChatResponse, status_code=status.HTTP_200_OK)
 async def chat_with_images(
     request:        Request,
-    session_id:     str            = File(...),
+    session_id:     str            = Form(default=""),
     message:        str            = File(default=""),
     images:         List[UploadFile] = File(default=[]),
     rag_service:    RAGService     = Depends(get_rag_service),
