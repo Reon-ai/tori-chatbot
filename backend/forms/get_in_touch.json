@@ -1,64 +1,67 @@
 {
   "id": "get_in_touch",
-  "title": "Get in Touch",
-  "description": "Leave your details and a Tiletoria consultant will contact you.",
-  "trigger_keywords": [
-    "contact me", "call me", "call me back", "get in touch",
-    "speak to someone", "talk to a person", "speak to sales",
-    "human", "representative", "someone call me",
-    "visit showroom", "book appointment", "come to store",
-    "showroom visit", "want to visit", "book a consultation",
-    "pop in", "drop by"
-  ],
+  "title": "Speak to a Tiletoria Consultant",
+  "description": "Leave your details and one of our team members will call or WhatsApp you back.",
+  "submitLabel": "Request Callback",
+  "successMessage": "Thank you! We've received your details and a consultant will be in touch with you shortly.",
   "fields": [
     {
       "name": "name",
       "label": "Your name",
       "type": "text",
-      "required": true,
-      "placeholder": "e.g. John Smith"
+      "placeholder": "e.g. John Smith",
+      "required": true
     },
     {
       "name": "phone",
       "label": "Phone number",
       "type": "tel",
-      "required": true,
-      "placeholder": "e.g. 082 123 4567"
+      "placeholder": "e.g. 071 123 4567",
+      "required": true
     },
     {
       "name": "email",
-      "label": "Email (optional)",
+      "label": "Email address",
       "type": "email",
-      "required": false,
-      "placeholder": "e.g. john@email.com"
-    },
-    {
-      "name": "store",
-      "label": "Preferred store (optional)",
-      "type": "select",
-      "options": [
-        "No preference",
-        "Cape Town — N1 City",
-        "Cape Town — Ottery",
-        "Cape Town — Montague Gardens",
-        "Johannesburg — Randburg",
-        "Johannesburg — Boksburg",
-        "Durban — The Bridge",
-        "Port Elizabeth",
-        "Pretoria — Centurion"
-      ],
+      "placeholder": "e.g. john@email.com",
       "required": false
     },
     {
+      "name": "store",
+      "label": "Nearest Tiletoria store",
+      "type": "select",
+      "required": false,
+      "options": [
+        "No preference",
+        "Cape Town — Paarden Eiland",
+        "Paarl — Specification Lab",
+        "Somerset West",
+        "Bellville",
+        "George"
+      ]
+    },
+    {
+      "name": "bestTime",
+      "label": "Best time to call",
+      "type": "select",
+      "required": false,
+      "options": [
+        "Any time",
+        "Morning (8am – 12pm)",
+        "Afternoon (12pm – 5pm)",
+        "After hours"
+      ]
+    },
+    {
       "name": "details",
-      "label": "How can we help?",
+      "label": "How can we help you?",
       "type": "textarea",
-      "required": true,
-      "placeholder": "Briefly tell us what you need."
+      "placeholder": "Briefly tell us what you need help with…",
+      "required": false
     },
     {
       "name": "consent",
-      "label": "I consent to Tiletoria processing my details in accordance with the POPI Act.",
+      "label": "I consent to Tiletoria storing and using my details to contact me about my enquiry, in accordance with the POPI Act.",
       "type": "checkbox",
       "required": true
     }

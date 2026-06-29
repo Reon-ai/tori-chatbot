@@ -1,47 +1,79 @@
 {
   "id": "get_quote",
-  "title": "Get a Quote",
-  "description": "Tell us what you need and we'll get back to you with a quote.",
-  "trigger_keywords": [
-    "quote", "quotation", "get a quote", "need a quote",
-    "how much", "what does it cost", "price for", "pricing on",
-    "sample", "samples", "tile sample", "free sample",
-    "contractor", "trade price", "trade quote", "bulk order",
-    "need pricing", "pricing please", "send me a quote",
-    "want a quote", "looking for a quote"
-  ],
+  "title": "Get a Quote from Tiletoria",
+  "description": "Leave your details below and a Tiletoria consultant will prepare an accurate quote for you.",
+  "submitLabel": "Send Quote Request",
+  "successMessage": "Thank you! We've received your quote request and one of our team members will contact you shortly.",
   "fields": [
     {
       "name": "name",
       "label": "Your name",
       "type": "text",
-      "required": true,
-      "placeholder": "e.g. John Smith"
+      "placeholder": "e.g. Sarah Botha",
+      "required": true
     },
     {
       "name": "phone",
       "label": "Phone number",
       "type": "tel",
-      "required": true,
-      "placeholder": "e.g. 082 123 4567"
+      "placeholder": "e.g. 082 123 4567",
+      "required": true
     },
     {
       "name": "email",
-      "label": "Email (optional)",
+      "label": "Email address",
       "type": "email",
+      "placeholder": "e.g. sarah@email.com",
+      "required": false
+    },
+    {
+      "name": "store",
+      "label": "Preferred Tiletoria store",
+      "type": "select",
       "required": false,
-      "placeholder": "e.g. john@email.com"
+      "options": [
+        "No preference",
+        "Cape Town — Paarden Eiland",
+        "Paarl — Specification Lab",
+        "Somerset West",
+        "Bellville",
+        "George"
+      ]
+    },
+    {
+      "name": "productType",
+      "label": "What are you looking for?",
+      "type": "select",
+      "required": false,
+      "options": [
+        "Floor tiles",
+        "Wall tiles",
+        "Outdoor / paving tiles",
+        "Vinyl flooring",
+        "Laminate flooring",
+        "Sanware (toilets, basins, baths)",
+        "Adhesive / Grout",
+        "Multiple products",
+        "Not sure yet"
+      ]
+    },
+    {
+      "name": "sqm",
+      "label": "Approximate area (m²)",
+      "type": "number",
+      "placeholder": "e.g. 45",
+      "required": false
     },
     {
       "name": "details",
-      "label": "What do you need?",
+      "label": "Tell us what you need",
       "type": "textarea",
-      "required": true,
-      "placeholder": "Tell us briefly what you're looking for."
+      "placeholder": "Describe the products, style, colours, room type, or any specific requirements…",
+      "required": true
     },
     {
       "name": "consent",
-      "label": "I consent to Tiletoria processing my details in accordance with the POPI Act.",
+      "label": "I consent to Tiletoria storing and using my details to contact me about my enquiry, in accordance with the POPI Act.",
       "type": "checkbox",
       "required": true
     }

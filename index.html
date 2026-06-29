@@ -2,160 +2,157 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Tori – Tiletoria AI Assistant</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='16' fill='%23FCE300'/><text y='.88em' font-size='72' font-weight='bold' font-family='Arial,sans-serif' fill='%23000000' x='50' text-anchor='middle'>T</text></svg>" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <!-- Prevent browser caching old versions -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Tori – Tiletoria AI</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23FCE300'/><text y='.88em' font-size='72' font-weight='900' font-family='Arial,sans-serif' fill='%23000000' x='50' text-anchor='middle'>T</text></svg>" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" />
   <link rel="stylesheet" href="css/style.css" />
-</head>
-<body class="light-mode">
 
-  <!-- ===== HEADER ===== -->
-  <header id="main-header">
-    <div class="header-inner">
-      <div class="brand">
-        <img src="https://www.genspark.ai/api/files/s/EpYATYxg" alt="Tiletoria" class="header-logo" />
+</head>
+<body>
+
+  <!-- ===== APP SHELL ===== -->
+  <div id="app-shell">
+
+    <!-- ===== TOP BAR ===== -->
+    <header id="app-topbar">
+
+      <!-- Left: Tiletoria logo -->
+      <div class="topbar-brand">
+        <img src="https://www.genspark.ai/api/files/s/EpYATYxg"
+             alt="Tiletoria"
+             class="topbar-logo"
+             onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" />
+        <div class="topbar-logo-fallback">
+          <svg viewBox="0 0 32 32" width="28" height="28"><rect width="32" height="32" fill="#FCE300"/></svg>
+        </div>
       </div>
-      <nav class="header-actions">
-        <button id="theme-toggle" class="icon-btn" title="Toggle dark/light mode" aria-label="Toggle theme">
+
+      <!-- Centre: Live status pill -->
+      <div class="topbar-status" id="topbar-status-pill">
+        <span class="status-pulse" id="status-dot"></span>
+        <span id="status-label">Tori · Online</span>
+      </div>
+
+      <!-- Right: Actions -->
+      <div class="topbar-actions">
+        <button id="theme-toggle" class="topbar-btn" title="Toggle theme" aria-label="Toggle theme">
           <i class="fas fa-moon"></i>
         </button>
-        <button id="clear-chat-btn" class="icon-btn" title="Clear conversation" aria-label="Clear chat">
-          <i class="fas fa-trash-alt"></i>
+        <button id="clear-chat-btn" class="topbar-btn topbar-btn--new" title="New conversation" aria-label="New conversation">
+          <i class="fas fa-plus"></i>
         </button>
-        <a href="admin.html" class="admin-link" title="Admin Panel">
-          <i class="fas fa-cog"></i>
-          <span>Admin</span>
-        </a>
-      </nav>
-    </div>
+      </div>
+
+    </header>
+
+    <!-- Connection warning banner -->
     <div id="connection-banner" class="connection-banner hidden">
-      <i class="fas fa-exclamation-triangle"></i>
-      <span id="connection-msg">Backend not connected – running in demo mode</span>
-      <button id="configure-backend-btn" class="btn-small">Configure</button>
+      <i class="fas fa-wifi"></i>
+      <span id="connection-msg">Connecting…</span>
+      <button id="configure-backend-btn" class="banner-btn">Configure</button>
     </div>
-  </header>
 
-  <!-- ===== MAIN LAYOUT ===== -->
-  <main id="app-main">
+    <!-- ===== MESSAGES ===== -->
+    <main id="chat-messages" role="log" aria-live="polite" aria-label="Conversation">
+      <!-- JS injects welcome + messages here -->
+    </main>
 
-    <!-- ===== CHAT SECTION ===== -->
-    <section id="chat-section" aria-label="Chat interface">
-
-      <!-- Status bar -->
-      <div class="chat-status-bar">
-        <span class="status-dot online" id="status-dot"></span>
-        <span id="status-label">Assistant Ready</span>
-        <span class="session-id" id="session-display"></span>
+    <!-- Typing indicator -->
+    <div id="typing-indicator" class="typing-indicator hidden" aria-label="Tori is thinking">
+      <div class="typing-avatar">
+        <svg viewBox="0 0 20 20" width="14" height="14"><rect width="20" height="20" fill="#FCE300"/></svg>
       </div>
-
-      <!-- Messages container -->
-      <div id="chat-messages" role="log" aria-live="polite" aria-label="Conversation messages">
-        <!-- Welcome message injected by JS -->
+      <div class="typing-bubble">
+        <span class="typing-dot"></span>
+        <span class="typing-dot"></span>
+        <span class="typing-dot"></span>
       </div>
+      <span class="typing-text">Tori is thinking…</span>
+    </div>
 
-      <!-- Typing indicator -->
-      <div id="typing-indicator" class="typing-indicator hidden" aria-label="Assistant is typing">
-        <div class="typing-bubble">
-          <span class="typing-dot"></span>
-          <span class="typing-dot"></span>
-          <span class="typing-dot"></span>
-        </div>
-        <span class="typing-text">ShopBot is thinking…</span>
-      </div>
+    <!-- suggestion chips removed — quick actions live in welcome screen -->
 
-      <!-- Suggested questions -->
-      <div id="suggestions-row" class="suggestions-row" aria-label="Suggested questions">
-        <button class="suggestion-chip" data-q="What products do you offer?">
-          <i class="fas fa-box-open"></i> What products do you offer?
-        </button>
-        <button class="suggestion-chip" data-q="What is your shipping policy?">
-          <i class="fas fa-truck"></i> Shipping policy?
-        </button>
-        <button class="suggestion-chip" data-q="How can I return an item?">
-          <i class="fas fa-undo"></i> Return an item?
-        </button>
-        <button class="suggestion-chip" data-q="How do I track my order?">
-          <i class="fas fa-search-location"></i> Track my order?
-        </button>
-      </div>
+    <!-- ===== INPUT BAR ===== -->
+    <form id="chat-form" class="chat-input-bar" autocomplete="off">
+      <textarea
+        id="chat-input"
+        placeholder="Ask Tori anything…"
+        rows="1"
+        maxlength="1000"
+        aria-label="Type your message"
+      ></textarea>
+      <!-- Mic button — hidden until Web Speech API support confirmed by JS -->
+      <button type="button" id="mic-btn" class="mic-btn hidden" aria-label="Voice input" title="Speak your question">
+        <i class="fas fa-microphone" id="mic-icon"></i>
+      </button>
+      <button type="submit" id="send-btn" class="send-btn" aria-label="Send">
+        <i class="fas fa-arrow-up"></i>
+      </button>
+    </form>
+    <!-- Listening overlay indicator -->
+    <div id="voice-listening-bar" class="voice-listening-bar hidden" aria-live="polite">
+      <span class="voice-pulse-ring"></span>
+      <span class="voice-pulse-ring delay-1"></span>
+      <span class="voice-pulse-ring delay-2"></span>
+      <span class="voice-listening-text">Listening… tap 🎤 to stop</span>
+      <button type="button" id="voice-cancel-btn" class="voice-cancel-btn" aria-label="Cancel voice input">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
 
-      <!-- Image previews (shown when images selected) -->
-      <div id="image-preview-row" class="image-preview-row hidden"></div>
-
-      <!-- Input bar -->
-      <form id="chat-form" class="chat-input-bar" autocomplete="off">
-        <button type="button" id="image-upload-btn" class="icon-btn" title="Upload image" aria-label="Upload image">
-          <i class="fas fa-camera"></i>
-        </button>
-        <input type="file" id="image-input" class="hidden" accept="image/jpeg,image/png,image/webp" multiple aria-label="Select images" />
-        <textarea
-          id="chat-input"
-          placeholder="Ask me anything about products, orders, or policies…"
-          rows="1"
-          maxlength="1000"
-          aria-label="Type your message"
-          aria-required="true"
-        ></textarea>
-        <span id="char-count" class="char-count">0/1000</span>
-        <button type="submit" id="send-btn" class="send-btn" aria-label="Send message">
-          <i class="fas fa-paper-plane"></i>
-        </button>
-      </form>
-
-    </section>
-
-  </main>
+  </div><!-- /#app-shell -->
 
   <!-- ===== BACKEND CONFIG MODAL ===== -->
   <div id="config-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="config-modal-title">
     <div class="modal-box">
       <div class="modal-header">
         <h2 id="config-modal-title"><i class="fas fa-plug"></i> Backend Configuration</h2>
-        <button class="modal-close" id="close-config-modal" aria-label="Close modal"><i class="fas fa-times"></i></button>
+        <button class="modal-close" id="close-config-modal" aria-label="Close"><i class="fas fa-times"></i></button>
       </div>
       <div class="modal-body">
-        <p class="modal-desc">Enter your backend API URL. Leave blank to use demo mode with simulated responses.</p>
+        <p class="modal-desc">Enter your backend API URL. Leave blank to use demo mode.</p>
         <label for="backend-url-input" class="form-label">Backend API URL</label>
-        <input
-          type="url"
-          id="backend-url-input"
-          class="form-input"
-          placeholder="http://localhost:8000"
-          value=""
-        />
-        <div class="form-hint">Example: <code>http://localhost:8000</code> or <code>https://your-api.railway.app</code></div>
+        <input type="url" id="backend-url-input" class="form-input" placeholder="https://your-api.railway.app" />
+        <div class="form-hint">Example: <code>https://your-api.railway.app</code></div>
       </div>
       <div class="modal-footer">
         <button class="btn-secondary" id="cancel-config">Cancel</button>
         <button class="btn-primary" id="save-config">
-          <i class="fas fa-save"></i> Save & Test Connection
+          <i class="fas fa-save"></i> Save & Connect
         </button>
       </div>
     </div>
   </div>
 
-  <!-- ===== CLEAR CHAT CONFIRM MODAL ===== -->
+  <!-- ===== CLEAR CHAT MODAL ===== -->
   <div id="clear-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="clear-modal-title">
     <div class="modal-box small">
       <div class="modal-header">
-        <h2 id="clear-modal-title"><i class="fas fa-trash-alt"></i> Clear Conversation</h2>
-        <button class="modal-close" id="close-clear-modal" aria-label="Close modal"><i class="fas fa-times"></i></button>
+        <h2 id="clear-modal-title"><i class="fas fa-plus"></i> New Conversation</h2>
+        <button class="modal-close" id="close-clear-modal" aria-label="Close"><i class="fas fa-times"></i></button>
       </div>
       <div class="modal-body">
-        <p>Are you sure you want to clear the entire conversation? This cannot be undone.</p>
+        <p>Start a fresh conversation? Your current chat will be cleared.</p>
       </div>
       <div class="modal-footer">
         <button class="btn-secondary" id="cancel-clear">Cancel</button>
         <button class="btn-danger" id="confirm-clear">
-          <i class="fas fa-trash-alt"></i> Yes, Clear It
+          <i class="fas fa-plus"></i> Start Fresh
         </button>
       </div>
     </div>
   </div>
 
-  <!-- ===== TOAST NOTIFICATIONS ===== -->
+  <!-- ===== TOAST ===== -->
   <div id="toast-container" aria-live="assertive" aria-atomic="true"></div>
 
   <script src="js/config.js"></script>
