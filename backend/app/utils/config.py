@@ -1,7 +1,6 @@
 """
 backend/app/utils/config.py
 Application settings — loaded from environment variables via pydantic-settings.
-Copy this entire file content into backend/app/utils/config.py on GitHub.
 """
 
 from functools import lru_cache
@@ -37,16 +36,19 @@ class Settings(BaseSettings):
         env_nested_delimiter="__",
     )
 
+    # ── OpenAI ────────────────────────────────────────────────
     openai_api_key:          str   = ""
     openai_embedding_model:  str   = "text-embedding-3-small"
     openai_chat_model:       str   = "gpt-4o-mini"
     openai_temperature:      float = 0.3
     openai_max_tokens:       int   = 500
 
+    # ── Vector DB ─────────────────────────────────────────────
     vector_db_type:       str = "chromadb"
     vector_db_path:       str = "./data/vectordb"
     vector_db_collection: str = "rag_documents"
 
+    # ── CORS ──────────────────────────────────────────────────
     allowed_origins: str = (
         "http://localhost:3000,"
         "http://localhost:8000,"
@@ -61,25 +63,32 @@ class Settings(BaseSettings):
             origins.append(railway_url)
         return origins
 
+    # ── Session / Memory ──────────────────────────────────────
     memory_turns:            int = 10
     memory_summary_interval: int = 3
     memory_retention_days:   int = 30
 
+    # ── Rate limiting ─────────────────────────────────────────
     rate_limit_per_minute: int = 30
 
+    # ── Email / SMTP ──────────────────────────────────────────
     notification_email: Optional[str] = None
-    smtp_host:     Optional[str] = None
-    smtp_port:     int           = 587
-    smtp_user:     Optional[str] = None
-    smtp_pass:     Optional[str] = None
+    smtp_host:          Optional[str] = None
+    smtp_port:          int           = 587
+    smtp_user:          Optional[str] = None
+    smtp_pass:          Optional[str] = None
 
-    vision_model:            str = "gpt-4o"
-    vision_max_images:       int = 3
+    # ── Vision ────────────────────────────────────────────────
+    vision_model:             str = "gpt-4o"
+    vision_max_images:        int = 3
     vision_max_image_size_mb: int = 10
 
+    # ── Form intent detection ─────────────────────────────────
     intent_confidence_threshold: float = 0.45
     form_short_circuit:          bool  = True
 
+    # ── Business ──────────────────────────────────────────────
+    app_name:      str = "Tori — Tiletoria AI Assistant"
     business_name: str = "Tiletoria"
 
     system_prompt: str = """You are Tori, the official AI assistant for Tiletoria.
