@@ -52,9 +52,10 @@ class Settings(BaseSettings):
     sqlite_path: str = "./data/chatbot.db"
 
     # ── RAG / Chunking ────────────────────────────────────────
-    chunk_size:    int = 800
-    chunk_overlap: int = 150
-    top_k:         int = 5
+    chunk_size:           int   = 800
+    chunk_overlap:        int   = 150
+    top_k:                int   = 5
+    similarity_threshold: float = 0.3
 
     # ── Documents ─────────────────────────────────────────────
     documents_dir:    str = "./documents"
