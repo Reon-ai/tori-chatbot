@@ -88,8 +88,10 @@ class Settings(BaseSettings):
     form_short_circuit:          bool  = True
 
     # ── Business ──────────────────────────────────────────────
-    app_name:      str = "Tori — Tiletoria AI Assistant"
-    business_name: str = "Tiletoria"
+    app_name:      str  = "Tori — Tiletoria AI Assistant"
+    business_name: str  = "Tiletoria"
+    version:       str  = "1.0.0"
+    debug:         bool = False
 
     system_prompt: str = """You are Tori, the official AI assistant for Tiletoria.
 
@@ -290,3 +292,4 @@ Respond as Tori — helpful, warm, practical, technically careful, commercially 
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
+
