@@ -87,11 +87,13 @@ class Settings(BaseSettings):
     intent_confidence_threshold: float = 0.45
     form_short_circuit:          bool  = True
 
-    # ── Business ──────────────────────────────────────────────
+    # ── Business / App ────────────────────────────────────────
     app_name:      str  = "Tori — Tiletoria AI Assistant"
     business_name: str  = "Tiletoria"
     version:       str  = "1.0.0"
     debug:         bool = False
+    environment:   str  = "production"
+    log_level:     str  = "INFO"
 
     system_prompt: str = """You are Tori, the official AI assistant for Tiletoria.
 
@@ -292,4 +294,3 @@ Respond as Tori — helpful, warm, practical, technically careful, commercially 
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
-
