@@ -37,16 +37,31 @@ class Settings(BaseSettings):
     )
 
     # ── OpenAI ────────────────────────────────────────────────
-    openai_api_key:          str   = ""
-    openai_embedding_model:  str   = "text-embedding-3-small"
-    openai_chat_model:       str   = "gpt-4o-mini"
-    openai_temperature:      float = 0.3
-    openai_max_tokens:       int   = 500
+    openai_api_key:         str   = ""
+    openai_embedding_model: str   = "text-embedding-3-small"
+    openai_chat_model:      str   = "gpt-4o-mini"
+    openai_temperature:     float = 0.3
+    openai_max_tokens:      int   = 500
 
     # ── Vector DB ─────────────────────────────────────────────
     vector_db_type:       str = "chromadb"
     vector_db_path:       str = "./data/vectordb"
     vector_db_collection: str = "rag_documents"
+
+    # ── SQLite ────────────────────────────────────────────────
+    sqlite_path: str = "./data/chatbot.db"
+
+    # ── RAG / Chunking ────────────────────────────────────────
+    chunk_size:    int = 800
+    chunk_overlap: int = 150
+    top_k:         int = 5
+
+    # ── Documents ─────────────────────────────────────────────
+    documents_dir:    str = "./documents"
+    max_file_size_mb: int = 50
+
+    # ── Admin ─────────────────────────────────────────────────
+    admin_password: str = "admin123"
 
     # ── CORS ──────────────────────────────────────────────────
     allowed_origins: str = (
