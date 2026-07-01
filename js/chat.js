@@ -6,10 +6,11 @@
 
 const CHAT = (() => {
   // ── State ─────────────────────────────────────────────────────
-  let sessionId  = '';
-  let isWaiting  = false;
-  let abortCtrl  = null;
-  let messageIdx = 0;
+  let sessionId    = '';
+  let isWaiting    = false;
+  let abortCtrl    = null;
+  let messageIdx   = 0;
+  let pendingImage = null;   // { file: File, dataUrl: string } | null
 
   // ── DOM refs ──────────────────────────────────────────────────
   const refs = {};
@@ -32,6 +33,13 @@ const CHAT = (() => {
     refs.confirmClear      = document.getElementById('confirm-clear');
     refs.cancelClear       = document.getElementById('cancel-clear');
     refs.closeClearModal   = document.getElementById('close-clear-modal');
+
+    // ── Photo upload refs ────────────────────────────────────────
+    refs.photoBtn          = document.getElementById('photo-btn');
+    refs.photoFileInput    = document.getElementById('photo-file-input');
+    refs.imagePreviewBar   = document.getElementById('image-preview-bar');
+    refs.imagePreviewThumb = document.getElementById('image-preview-thumb');
+    refs.imageRemoveBtn    = document.getElementById('image-remove-btn');
   }
 
   // ── Voice Recognition ─────────────────────────────────────────
@@ -227,23 +235,31 @@ const CHAT = (() => {
         </div>
       </div>
       <h2>Hi, I'm <em>Tori</em></h2>
-      <p>Your Tiletoria flooring, tile and design concierge.<br>Ask me anything — I'm here to help you make the right choice.</p>
+      <p>How can I help you today?</p>
       <div class="welcome-caps">
-        <button class="welcome-cap-btn" data-q="What tiles do you have in stock?">
-          <svg viewBox="0 0 20 20" width="14" height="14"><rect x="1" y="1" width="8" height="8" fill="#FCE300"/><rect x="11" y="1" width="8" height="8" fill="#FCE300"/><rect x="1" y="11" width="8" height="8" fill="#FCE300"/><rect x="11" y="11" width="8" height="8" fill="#FCE300"/></svg>
-          Tiles
+        <button class="welcome-cap-btn" data-q="I need a quote">
+          <i class="fas fa-file-invoice-dollar"></i>
+          Get a Quote
         </button>
-        <button class="welcome-cap-btn" data-q="Tell me about your sanware range">
-          <i class="fas fa-shower"></i>
-          Sanware
+        <button class="welcome-cap-btn" data-q="Help me calculate how many tiles, adhesive and grout I need">
+          <i class="fas fa-calculator"></i>
+          Calculate Tiles
         </button>
-        <button class="welcome-cap-btn" data-q="What vinyl and laminate flooring options do you offer?">
-          <i class="fas fa-layer-group"></i>
-          Vinyl &amp; Laminate
+        <button class="welcome-cap-btn" data-q="I want to check stock or ask about a product">
+          <i class="fas fa-boxes-stacked"></i>
+          Check Stock / Product
         </button>
-        <button class="welcome-cap-btn" data-q="What are your store locations?">
+        <button class="welcome-cap-btn" data-q="Help me find the nearest Tiletoria or Spec Lab branch">
           <i class="fas fa-location-dot"></i>
-          Store Locations
+          Find a Branch
+        </button>
+        <button class="welcome-cap-btn" data-q="I need help choosing the right tile or flooring product">
+          <i class="fas fa-lightbulb"></i>
+          Product Advice
+        </button>
+        <button class="welcome-cap-btn" data-q="I would like to speak to a consultant">
+          <i class="fas fa-headset"></i>
+          Speak to a Consultant
         </button>
       </div>
     `;
@@ -454,8 +470,150 @@ const CHAT = (() => {
     return null;
   }
 
+  // ── Photo upload helpers ──────────────────────────────────────
+
+  /** Read file as dataURL — returns a Promise<string> */
+  function readFileAsDataUrl(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload  = (e) => resolve(e.target.result);
+      reader.onerror = () => reject(new Error('Could not read image file.'));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  /** Read file → store in pendingImage → show preview strip */
+  async function showImagePreview(file) {
+    try {
+      const dataUrl = await readFileAsDataUrl(file);
+      pendingImage = { file, dataUrl };
+      if (refs.imagePreviewThumb) refs.imagePreviewThumb.src = dataUrl;
+      if (refs.imagePreviewBar)   refs.imagePreviewBar.style.display = 'flex';
+    } catch (e) {
+      TOAST?.show('Could not load image preview.', 'warning');
+    }
+  }
+
+  /** Clear the pending image and hide the preview strip */
+  function clearImagePreview() {
+    pendingImage = null;
+    if (refs.imagePreviewBar)   refs.imagePreviewBar.style.display = 'none';
+    if (refs.imagePreviewThumb) refs.imagePreviewThumb.src = '';
+  }
+
+  /**
+   * Add a user image bubble to the conversation UI.
+   * Shows the thumbnail inline so the customer can see what they sent.
+   */
+  function addImageMessage(dataUrl, caption) {
+    const idx = ++messageIdx;
+    const row = document.createElement('div');
+    row.className = 'msg-row user';
+    row.dataset.msgIndex = idx;
+
+    const captionHtml = caption
+      ? `<p class="image-msg-caption">${escapeHtml(caption)}</p>`
+      : '';
+
+    const imgSrc = dataUrl || '';
+    row.innerHTML = `
+      <div class="msg-avatar" aria-hidden="true"><i class="fas fa-user user-avatar-icon"></i></div>
+      <div class="msg-body">
+        <div class="msg-bubble image-msg-bubble">
+          ${imgSrc
+            ? `<img src="${imgSrc}" alt="Uploaded photo" class="chat-image-preview" />`
+            : `<p style="font-size:.85rem;opacity:.7;"><i class="fas fa-image"></i> Photo sent</p>`
+          }
+          ${captionHtml}
+        </div>
+        <div class="msg-meta"><span class="msg-time">${formatTime()}</span></div>
+      </div>
+    `;
+    refs.messagesContainer.appendChild(row);
+    scrollToBottom();
+    return row;
+  }
+
+  /**
+   * Send a photo (+ optional caption) to the /api/chat/image endpoint.
+   * Completely separate from sendMessage() — existing text flow untouched.
+   */
+  async function sendImage(file, caption) {
+    if (!file || isWaiting) return;
+
+    // Ensure dataUrl is ready — re-read if necessary (guards against
+    // the user hitting Send before FileReader.onload completed)
+    let dataUrl = pendingImage?.dataUrl || '';
+    if (!dataUrl) {
+      try { dataUrl = await readFileAsDataUrl(file); } catch { dataUrl = ''; }
+    }
+
+    clearImagePreview();
+
+    setInputEnabled(false);
+    setStatus('busy', 'Analysing photo…');
+    showTyping();
+
+    // Show the image bubble immediately — user sees their photo in chat
+    addImageMessage(dataUrl, caption);
+    if (refs.input) { refs.input.value = ''; autoResize(); }
+
+    const fd = new FormData();
+    fd.append('file',       file);
+    fd.append('session_id', sessionId);
+    fd.append('message',    caption || '');
+
+    const base = APP_CONFIG.getBackendUrl();
+    const startTime = Date.now();
+
+    try {
+      const resp = await fetch(`${base}/api/chat/image`, {
+        method: 'POST',
+        body:   fd,
+        signal: AbortSignal.timeout(40000),   // vision can be slower
+      });
+
+      const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+      hideTyping();
+
+      if (!resp.ok) {
+        const j = await resp.json().catch(() => ({}));
+        const msg = resp.status === 404
+          ? 'Image analysis not available yet — Railway may still be deploying. Please try again in a minute.'
+          : (j.detail || `HTTP ${resp.status}`);
+        throw new Error(msg);
+      }
+
+      const data = await resp.json();
+      if (data?.response) {
+        addMessage('bot', data.response, { messageId: data.message_id });
+      } else {
+        addErrorMessage('No response received from image analysis.');
+      }
+
+      setStatus('online', `Ready · ${elapsed}s`);
+    } catch (err) {
+      hideTyping();
+      if (err.name === 'AbortError') {
+        setStatus('online', 'Cancelled');
+      } else {
+        setStatus('offline', 'Error');
+        addErrorMessage(err.message || 'Image analysis failed.');
+      }
+    } finally {
+      setInputEnabled(true);
+      abortCtrl = null;
+      setTimeout(() => setStatus('online', 'Tori · Ready'), 3000);
+    }
+  }
+
   // ── Send message ──────────────────────────────────────────────
   async function sendMessage(text) {
+    // If an image is pending and the user hits send, dispatch sendImage instead
+    if (pendingImage) {
+      await sendImage(pendingImage.file, text.trim());
+      return;
+    }
     const msg = text.trim();
     if (!msg || isWaiting) return;
 
@@ -522,6 +680,7 @@ const CHAT = (() => {
     messageIdx = 0;
     sessionId = APP_CONFIG.refreshSession();
     FORMS?.setSession(sessionId);
+    clearImagePreview();   // also discard any pending photo
     showWelcome();
     TOAST.show('Conversation cleared', 'success');
   }
@@ -552,6 +711,25 @@ const CHAT = (() => {
       chip.addEventListener('click', () => {
         sendMessage(chip.dataset.q || chip.textContent.trim());
       });
+    });
+
+    // ── File selected — input physically covers the camera button ─
+    // No JS .click() needed: the input IS the click target.
+    refs.photoFileInput?.addEventListener('change', (e) => {
+      const file = e.target.files?.[0];
+      e.target.value = '';   // reset so same file can be picked again
+      if (!file) return;
+      if (file.size > 10 * 1024 * 1024) {
+        TOAST?.show('Photo is too large — please use an image under 10 MB.', 'warning');
+        return;
+      }
+      showImagePreview(file);
+    });
+
+    // Remove / cancel photo
+    refs.imageRemoveBtn?.addEventListener('click', () => {
+      clearImagePreview();
+      TOAST?.show('Photo removed', 'info');
     });
 
     // Clear chat button
@@ -588,4 +766,3 @@ const CHAT = (() => {
 })();
 
 window.CHAT = CHAT;
-
