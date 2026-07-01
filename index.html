@@ -54,11 +54,13 @@
 
     </header>
 
-    <!-- Connection warning banner -->
+    <!-- Connection warning banner — only ever shown to customers with
+         friendly Tori wording. The technical "Configure" flow has been
+         disabled for the public page (see js/main.js). -->
     <div id="connection-banner" class="connection-banner hidden">
       <i class="fas fa-wifi"></i>
-      <span id="connection-msg">Connecting…</span>
-      <button id="configure-backend-btn" class="banner-btn">Configure</button>
+      <span id="connection-msg">One moment…</span>
+      <button id="request-help-btn" class="banner-btn">Request Help</button>
     </div>
 
     <!-- ===== MESSAGES ===== -->
@@ -81,8 +83,28 @@
 
     <!-- suggestion chips removed — quick actions live in welcome screen -->
 
+    <!-- ===== IMAGE PREVIEW STRIP (shown when photo selected) ===== -->
+    <div id="image-preview-bar" class="image-preview-bar" style="display:none">
+      <div class="image-preview-thumb-wrap">
+        <img id="image-preview-thumb" src="" alt="Selected photo" class="image-preview-thumb" />
+        <button type="button" id="image-remove-btn" class="image-remove-btn" aria-label="Remove photo">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <span class="image-preview-label">Photo ready — add a message or tap Send</span>
+    </div>
+
     <!-- ===== INPUT BAR ===== -->
     <form id="chat-form" class="chat-input-bar" autocomplete="off">
+      <!-- Camera upload: the file input is absolutely positioned over the button.
+           It IS the click target — no JS .click() needed, works on every browser. -->
+      <div class="photo-btn" title="Send a photo for Tori to analyse">
+        <i class="fas fa-camera" style="pointer-events:none;position:relative;z-index:1;"></i>
+        <input type="file" id="photo-file-input"
+               accept="image/jpeg,image/png,image/webp,image/gif"
+               style="position:absolute;top:0;left:0;width:100%;height:100%;opacity:0;cursor:pointer;z-index:2;font-size:100px;transform:scale(1);"
+               aria-label="Upload photo" />
+      </div>
       <textarea
         id="chat-input"
         placeholder="Ask Tori anything…"
@@ -111,7 +133,11 @@
 
   </div><!-- /#app-shell -->
 
-  <!-- ===== BACKEND CONFIG MODAL ===== -->
+  <!-- ===== BACKEND CONFIG MODAL =====
+       NOTE: This modal is intentionally unreachable from the public
+       customer page as of Phase 1 cleanup — no customer-facing button
+       opens it any more (see js/main.js). Left in place, untouched,
+       for developer/admin use only, and to keep this change reversible. -->
   <div id="config-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="config-modal-title">
     <div class="modal-box">
       <div class="modal-header">
