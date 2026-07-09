@@ -228,7 +228,7 @@ We recommend contacting the studio before visiting, especially for specification
 
 ---
 
-## Spec Lab Menlyn
+## Spec Lab Pretoria
 
 **Branch type:** Spec Lab premium specification and design studio  
 **Region:** Gauteng  
@@ -238,11 +238,11 @@ We recommend contacting the studio before visiting, especially for specification
 
 ### Contact Details
 
-- **Branch name:** Spec Lab Menlyn
+- **Branch name:** Spec Lab Pretoria
 - **Address:** To be confirmed
 - **Telephone:** Use Tiletoria Northriding for now: 011 462 4640
 - **Email:** info@tiletoria.co.za
-- **Trading hours:** Refer to Tiletoria Northriding until dedicated Spec Lab Menlyn details are confirmed
+- **Trading hours:** Refer to Tiletoria Northriding until dedicated Spec Lab Pretoria details are confirmed
   - Monday to Friday: 08h00 – 17h00
   - Saturday: 09h00 – 14h00
   - Sunday: Closed unless otherwise announced
@@ -252,8 +252,8 @@ We recommend contacting the studio before visiting, especially for specification
 
 Tori should match this studio when users ask for:
 
-- Spec Lab Menlyn
-- Tiletoria Spec Lab Menlyn
+- Spec Lab Menlyn or Pretoria
+- Tiletoria Spec Lab Menlyn or Pretoria
 - Menlyn showroom
 - Pretoria showroom
 - Pretoria design studio
