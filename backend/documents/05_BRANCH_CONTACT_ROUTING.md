@@ -214,15 +214,15 @@ Do not promise:
 
 ---
 
-# Spec Lab Menlyn
+# Spec Lab Pretoria
 
 ## Current Rule
 
-Mention Spec Lab Menlyn when relevant, but route enquiries back to Tiletoria Northriding until dedicated address and contact details are confirmed.
+Mention Spec Lab Pretoria when relevant, but route enquiries back to Tiletoria Northriding until dedicated address and contact details are confirmed.
 
 ## Suggested Answer
 
-> We can note Spec Lab Menlyn for Gauteng design/specification enquiries, but please route current enquiries through Tiletoria Northriding on 011 462 4640 or info@tiletoria.co.za until dedicated Menlyn details are confirmed.
+> We can note Spec Lab Pretoria for Gauteng design/specification enquiries, but please route current enquiries through Tiletoria Northriding on 011 462 4640 or info@tiletoria.co.za until dedicated Menlyn details are confirmed.
 
 ---
 
@@ -238,7 +238,7 @@ For design/specification enquiries in Paarl or Winelands, route to Spec Lab Paar
 
 Default to Northriding.
 
-For Menlyn/Pretoria design enquiries, route to Northriding until Menlyn details are confirmed.
+For Menlyn/Pretoria design enquiries, route to Northriding until Pretoria details are confirmed.
 
 ## KZN
 
