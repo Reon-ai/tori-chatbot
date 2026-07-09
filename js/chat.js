@@ -12,6 +12,20 @@ const CHAT = (() => {
   let messageIdx   = 0;
   let pendingImage = null;   // { file: File, dataUrl: string } | null
 
+  // Rolling window of recent message text (both user + bot), used only to
+  // detect whether a tile/adhesive/grout calculation is already in progress
+  // so the frontend fallback trigger doesn't hijack it. Mirrors the same
+  // guard implemented server-side in rag_service.py.
+  const _recentTurns = [];
+  function _pushRecentTurn(text) {
+    _recentTurns.push(text || '');
+    if (_recentTurns.length > 6) _recentTurns.shift();
+  }
+  const _CALCULATION_CONTEXT_RE = /\bm²|m2|sqm\b|\btiles?\b|\bboxes?\b|\badhesive\b|\bgrout\b|\bcoverage\b|\bbags?\b|\btrowel\b|\bback[- ]butter\w*\b|\bwaste\b|\bsubstrate\b|\bpack\s*size\b/i;
+  function _isMidCalculation() {
+    return _recentTurns.some(t => _CALCULATION_CONTEXT_RE.test(t));
+  }
+
   // ── DOM refs ──────────────────────────────────────────────────
   const refs = {};
 
@@ -452,20 +466,27 @@ const CHAT = (() => {
   // ── Frontend intent fallback ─────────────────────────────────
   // Used ONLY when the backend hasn't redeployed yet.
   // Maps user message → formId matching /forms/<formId>_form.json
+  // `continuationSensitive: true` = suppress this rule when a tile/adhesive/
+  // grout calculation is already in progress (see _isMidCalculation above),
+  // so a natural follow-up question doesn't get hijacked into a lead form.
   const _FRONTEND_FALLBACK = [
-    [/\bquotes?\b|\bquotation\b|\bkwotasie\b|\bhow\s+much\b|\bwat\s+kos\b|\bhoeveel\b|\bpryse?\b|\bi\s+want\s+to\s+(buy|order)\b|\bready\s+to\s+(buy|order)\b/i, 'tile_quote', 'I can help with that. Please complete the quick form below and a consultant will be in touch.'],
-    [/\b(call|phone|ring)\s+me\b|\bcontact\s+me\b|\bget\s+back\s+to\s+me\b|\bwhatsapp\s+me\b|\bspeak\s+to\s+(a\s+)?(person|consultant)\b|\bkan\s+iemand\b/i, 'contact_me', 'Sure — leave your details below and a consultant will call or WhatsApp you.'],
-    [/\bcontractor\b|\bbuilder\b|\btrade\s*(price|account)?\b|\bbulk\s*(order|buy)?\b|\barchitect\b|\binterior\s+design\w*\b/i, 'contractor_quote', 'Great — we love working with trade professionals. Please complete the form below.'],
-    [/\bbook\s+an?\s+appointment\b|\bvisit\s+the\s+showroom\b|\bshowroom\s+appointment\b/i, 'store_assistance', 'We would love to see you! Please complete the booking form below.'],
-    [/\bwhich\s+(tile|product)\b|\bhelp\s+me\s+choose\b|\brecommend\s+(a\s+)?(tile|product)\b/i, 'product_enquiry', 'Happy to help you find the right product. Please share a few details below.'],
-    [/\bsample\b|\bsee\s+the\s+tile\b/i, 'sample_request', 'Seeing is believing! Fill in the form and we will arrange samples for you.'],
-    [/\bin\s+stock\b|\bdo\s+you\s+(have|stock)\b|\bavailab\w+\b/i, 'product_enquiry', 'Let me check that for you. Please complete the short form below.'],
-    [/\bdeliver\w*\b|\bshipping\b|\bdo\s+you\s+deliver\b/i, 'contact_me', 'We can arrange delivery. Leave your details below and we will confirm costs.'],
+    [/\bquotes?\b|\bquotation\b|\bkwotasie\b|\bhow\s+much\b|\bwat\s+kos\b|\bhoeveel\b|\bpryse?\b|\bi\s+want\s+to\s+(buy|order)\b|\bready\s+to\s+(buy|order)\b/i, 'tile_quote', 'I can help with that. Please complete the quick form below and a consultant will be in touch.', true],
+    [/\b(call|phone|ring)\s+me\b|\bcontact\s+me\b|\bget\s+back\s+to\s+me\b|\bwhatsapp\s+me\b|\bspeak\s+to\s+(a\s+)?(person|consultant)\b|\bkan\s+iemand\b/i, 'contact_me', 'Sure — leave your details below and a consultant will call or WhatsApp you.', false],
+    [/\bcontractor\b|\bbuilder\b|\btrade\s*(price|account)?\b|\bbulk\s*(order|buy)?\b|\barchitect\b|\binterior\s+design\w*\b/i, 'contractor_quote', 'Great — we love working with trade professionals. Please complete the form below.', false],
+    [/\bbook\s+an?\s+appointment\b|\bvisit\s+the\s+showroom\b|\bshowroom\s+appointment\b/i, 'store_assistance', 'We would love to see you! Please complete the booking form below.', false],
+    [/\bwhich\s+(tile|product)\b|\bhelp\s+me\s+choose\b|\brecommend\s+(a\s+)?(tile|product)\b/i, 'product_enquiry', 'Happy to help you find the right product. Please share a few details below.', false],
+    [/\bsample\b|\bsee\s+the\s+tile\b/i, 'sample_request', 'Seeing is believing! Fill in the form and we will arrange samples for you.', false],
+    [/\bin\s+stock\b|\bdo\s+you\s+(have|stock)\b|\bavailab\w+\b/i, 'product_enquiry', 'Let me check that for you. Please complete the short form below.', false],
+    [/\bdeliver\w*\b|\bshipping\b|\bdo\s+you\s+deliver\b/i, 'contact_me', 'We can arrange delivery. Leave your details below and we will confirm costs.', false],
+    [/\bhow\s+many\s+tiles?\b|\bhow\s+many\s+boxes\b|\bcalculate.{0,20}(tiles?|quantities?)\b|\b\d+\s*(m²|m2|sqm)\b/i, 'tile_quote', 'I can help calculate what you need. Please fill in your details and measurements below.', true],
   ];
 
   function _frontendFallbackAction(userMessage) {
-    for (const [re, formId, message] of _FRONTEND_FALLBACK) {
-      if (re.test(userMessage)) return { formId, message };
+    const midCalc = _isMidCalculation();
+    for (const [re, formId, message, continuationSensitive] of _FRONTEND_FALLBACK) {
+      if (!re.test(userMessage)) continue;
+      if (midCalc && continuationSensitive) continue; // let the bot keep calculating
+      return { formId, message };
     }
     return null;
   }
@@ -622,6 +643,7 @@ const CHAT = (() => {
     showTyping();
 
     addMessage('user', msg);
+    _pushRecentTurn(msg);
 
     if (refs.input) { refs.input.value = ''; autoResize(); }
     abortCtrl = new AbortController();
@@ -637,6 +659,7 @@ const CHAT = (() => {
         const cleanResponse = data.response.replaceAll('[CONSULTANT_NEEDED]', '').trim();
 
         addMessage('bot', cleanResponse, { messageId: data.message_id });
+        _pushRecentTurn(cleanResponse);
 
         // ── Structured form action ────────────────────────────────
         // PRIMARY:  backend returns data.form_action = {formId, message}
