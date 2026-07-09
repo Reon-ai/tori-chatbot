@@ -195,8 +195,7 @@ When any of the following apply, trigger the customer assistance form immediatel
 Do not ask the customer for their details manually one by one. The form collects that information.
 
 When triggering the form, return this structured action:
-{"action": "show_form", "form_id": "customer_assistance_request", "assistance_type": "<best matching type>", "reason": "<short reason based on the customer message>"}
-
+{{"action": "show_form", "form_id": "customer_assistance_request", "assistance_type": "<best matching type>", "reason": "<short reason based on the customer message>"}}
 After triggering, say exactly this:
 "Absolutely — I can help with that. Please complete the short form so the correct Tiletoria team member can assist you properly."
 
