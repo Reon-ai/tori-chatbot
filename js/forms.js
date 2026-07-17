@@ -5,6 +5,11 @@
  * it returns { type: "form", formId: "...", message: "..." }.
  * This module renders the matching form inline in the chat bubble,
  * handles validation, submission, and confirmation.
+ *
+ * chat.js also calls two functions directly:
+ *   FORMS.setSession(sessionId)   — on session init / "Clear chat"
+ *   FORMS.renderForm(formId, bridgeMessage, container, sessionId, explicit)
+ *       — when the backend's/fallback's regex trigger fires
  */
 
 'use strict';
@@ -14,6 +19,27 @@ const FORMS = (() => {
   let currentFormDef = null;
   let isSubmitting = false;
   const formCache = {};
+
+  // ── Session tracking (used by chat.js) ────────────────────────
+  // chat.js calls FORMS.setSession(sessionId) whenever the session id is
+  // known/changes (page load, "Clear chat"), so that any form submitted
+  // afterwards is tagged with the correct session_id.
+  let _sessionId = '';
+
+  // Which formIds have already been shown this browsing session.
+  // Tracked per-formId (not one global flag) so an earlier soft prompt
+  // (e.g. "contact_me") never blocks a later, different form
+  // (e.g. "tile_quote"). Cleared whenever setSession() runs (fresh
+  // session / "Clear chat"), so old sessions never leak into new ones.
+  const _shownFormIds = new Set();
+
+  // ══════════════════════════════════════════════════════════════
+  // PUBLIC: setSession — called by chat.js on init and on "Clear chat"
+  // ══════════════════════════════════════════════════════════════
+  function setSession(sid) {
+    _sessionId = sid || '';
+    _shownFormIds.clear();
+  }
 
   function escapeHtml(str) {
     return String(str)
@@ -64,6 +90,81 @@ const FORMS = (() => {
           { name: 'consent', label: 'I consent to Tiletoria processing my details in accordance with the POPI Act.', type: 'checkbox', required: true },
         ]
       },
+      // Fallbacks for the newer frontend-fallback formIds used by chat.js's
+      // _FRONTEND_FALLBACK list, in case the backend endpoint is unreachable.
+      tile_quote: {
+        id: 'tile_quote',
+        title: 'Get a Quote',
+        description: "Tell us what you need and we'll get back to you with a quote.",
+        fields: [
+          { name: 'name', label: 'Your name', type: 'text', required: true, placeholder: 'e.g. John Smith' },
+          { name: 'phone', label: 'Phone number', type: 'tel', required: true, placeholder: 'e.g. 082 123 4567' },
+          { name: 'email', label: 'Email (optional)', type: 'email', required: false, placeholder: 'e.g. john@email.com' },
+          { name: 'details', label: 'What do you need?', type: 'textarea', required: true, placeholder: "Tell us briefly what you're looking for." },
+          { name: 'consent', label: 'I consent to Tiletoria processing my details in accordance with the POPI Act.', type: 'checkbox', required: true },
+        ]
+      },
+      contact_me: {
+        id: 'contact_me',
+        title: 'Get in Touch',
+        description: "Leave your details and a Tiletoria consultant will contact you.",
+        fields: [
+          { name: 'name', label: 'Your name', type: 'text', required: true, placeholder: 'e.g. John Smith' },
+          { name: 'phone', label: 'Phone number', type: 'tel', required: true, placeholder: 'e.g. 082 123 4567' },
+          { name: 'email', label: 'Email (optional)', type: 'email', required: false, placeholder: 'e.g. john@email.com' },
+          { name: 'details', label: 'How can we help?', type: 'textarea', required: true, placeholder: 'Briefly tell us what you need.' },
+          { name: 'consent', label: 'I consent to Tiletoria processing my details in accordance with the POPI Act.', type: 'checkbox', required: true },
+        ]
+      },
+      contractor_quote: {
+        id: 'contractor_quote',
+        title: 'Trade / Contractor Quote',
+        description: "Tell us about your project and we'll prepare a trade quote.",
+        fields: [
+          { name: 'name', label: 'Your name', type: 'text', required: true, placeholder: 'e.g. John Smith' },
+          { name: 'companyName', label: 'Company name (optional)', type: 'text', required: false, placeholder: 'e.g. Smith Builders' },
+          { name: 'phone', label: 'Phone number', type: 'tel', required: true, placeholder: 'e.g. 082 123 4567' },
+          { name: 'email', label: 'Email (optional)', type: 'email', required: false, placeholder: 'e.g. john@email.com' },
+          { name: 'details', label: 'Tell us about the project', type: 'textarea', required: true, placeholder: 'Quantities, timelines, products needed, etc.' },
+          { name: 'consent', label: 'I consent to Tiletoria processing my details in accordance with the POPI Act.', type: 'checkbox', required: true },
+        ]
+      },
+      store_assistance: {
+        id: 'store_assistance',
+        title: 'Book a Showroom Visit',
+        description: "Let us know when you'd like to visit and we'll be ready for you.",
+        fields: [
+          { name: 'name', label: 'Your name', type: 'text', required: true, placeholder: 'e.g. John Smith' },
+          { name: 'phone', label: 'Phone number', type: 'tel', required: true, placeholder: 'e.g. 082 123 4567' },
+          { name: 'email', label: 'Email (optional)', type: 'email', required: false, placeholder: 'e.g. john@email.com' },
+          { name: 'details', label: 'How can we help?', type: 'textarea', required: true, placeholder: 'Preferred date/time, store, and what you need.' },
+          { name: 'consent', label: 'I consent to Tiletoria processing my details in accordance with the POPI Act.', type: 'checkbox', required: true },
+        ]
+      },
+      product_enquiry: {
+        id: 'product_enquiry',
+        title: 'Product Enquiry',
+        description: "Tell us a bit more so we can help you find the right product.",
+        fields: [
+          { name: 'name', label: 'Your name', type: 'text', required: true, placeholder: 'e.g. John Smith' },
+          { name: 'phone', label: 'Phone number', type: 'tel', required: true, placeholder: 'e.g. 082 123 4567' },
+          { name: 'email', label: 'Email (optional)', type: 'email', required: false, placeholder: 'e.g. john@email.com' },
+          { name: 'details', label: 'What are you looking for?', type: 'textarea', required: true, placeholder: 'Product type, area, style, budget, etc.' },
+          { name: 'consent', label: 'I consent to Tiletoria processing my details in accordance with the POPI Act.', type: 'checkbox', required: true },
+        ]
+      },
+      sample_request: {
+        id: 'sample_request',
+        title: 'Request Samples',
+        description: "Tell us which samples you'd like and where to send them.",
+        fields: [
+          { name: 'name', label: 'Your name', type: 'text', required: true, placeholder: 'e.g. John Smith' },
+          { name: 'phone', label: 'Phone number', type: 'tel', required: true, placeholder: 'e.g. 082 123 4567' },
+          { name: 'email', label: 'Email (optional)', type: 'email', required: false, placeholder: 'e.g. john@email.com' },
+          { name: 'details', label: 'Which samples would you like?', type: 'textarea', required: true, placeholder: 'Product names/ranges, and delivery or collection details.' },
+          { name: 'consent', label: 'I consent to Tiletoria processing my details in accordance with the POPI Act.', type: 'checkbox', required: true },
+        ]
+      },
     };
     return fallbacks[formId] || null;
   }
@@ -94,6 +195,70 @@ const FORMS = (() => {
 
     CHAT.scrollToBottom?.() || scrollToBottom();
 
+    bindFormEvents(formContainer, formId);
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // PUBLIC: renderForm — called by chat.js's sendMessage() flow.
+  //
+  // chat.js already adds the bot's bridge message itself (via
+  // CHAT.addMessage before calling this), so — unlike showForm() above,
+  // which adds its own bot bubble — renderForm() only attaches the form
+  // card onto the most recent bot message row already in the chat, so
+  // the bridge text is never shown twice.
+  //
+  // Signature matches exactly what chat.js calls:
+  //   FORMS.renderForm(formId, message, container, sessionId, explicit)
+  //
+  // `explicit` — true when the customer made an unambiguous, deliberate
+  // request (e.g. "send me a quote"): the form is shown even if that
+  // same formId was already shown earlier this session. When false (a
+  // softer/ambiguous trigger, e.g. "how much"), the form is shown only
+  // once per formId per session, to avoid repeatedly interrupting the
+  // conversation with the same soft prompt.
+  // ══════════════════════════════════════════════════════════════
+  async function renderForm(formId, bridgeMessage, container, sessionId, explicit = false) {
+    if (sessionId) _sessionId = sessionId;
+
+    if (_shownFormIds.has(formId) && !explicit) {
+      console.log(`[FORMS] '${formId}' already shown this session — skipping (not an explicit request)`);
+      return;
+    }
+
+    const formDef = await fetchFormDefinition(formId);
+    if (!formDef) {
+      console.error('[FORMS] Failed to load form definition for', formId);
+      CHAT.addErrorMessage?.(`Sorry, I couldn't load the form (ID: ${formId}). Please try again or contact us directly.`);
+      return;
+    }
+
+    _shownFormIds.add(formId);
+    currentFormId = formId;
+    currentFormDef = formDef;
+
+    const formContainer = document.createElement('div');
+    formContainer.className = 'chat-form-container';
+    formContainer.id = `form-${formId}-${Date.now()}`;
+    formContainer.innerHTML = buildFormHTML(formDef, null);
+
+    // Attach onto the most recent bot message bubble inside `container`
+    // (chat.js has already displayed the bridge text via CHAT.addMessage).
+    let targetBody = null;
+    if (container && container.querySelectorAll) {
+      const botRows = container.querySelectorAll('.msg-row.bot');
+      const lastBotRow = botRows[botRows.length - 1];
+      targetBody = lastBotRow ? lastBotRow.querySelector('.msg-body') : null;
+    }
+
+    if (targetBody) {
+      targetBody.appendChild(formContainer);
+    } else if (container) {
+      container.appendChild(formContainer);
+    } else {
+      document.getElementById('chat-messages')?.appendChild(formContainer);
+    }
+
+    CHAT.scrollToBottom?.() || scrollToBottom();
     bindFormEvents(formContainer, formId);
   }
 
@@ -275,7 +440,7 @@ const FORMS = (() => {
     }
 
     try {
-      const result = await API.submitForm(formId, validation.data);
+      const result = await API.submitForm(formId, validation.data, _sessionId);
 
       if (result.success) {
         container.innerHTML = `
@@ -346,6 +511,11 @@ const FORMS = (() => {
   return {
     showForm,
     demoSubmitForm,
+    // Added — these are what chat.js actually calls. Without them,
+    // FORMS.renderForm(...) / FORMS.setSession(...) silently did nothing,
+    // which is why the quote form never appeared.
+    setSession,
+    renderForm,
   };
 })();
 
